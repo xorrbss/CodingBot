@@ -12,21 +12,11 @@
 
 ## 사전 점검 (push 전 필수)
 
-### 1. 런타임 파일 누설 확인 — **현 시점 BLOCKER**
+### 1. 런타임 파일 누설 확인 — **해소됨** (commit `051eb37`)
 
-- `.heartbeat`는 `4bafda5` (initial commit)에 포함되어 git에 추적 중. `codingbot run`이 매 사이클 갱신해 `git status`에 항상 modified로 뜸.
-- HANDOFF.md는 "코드 커밋에 절대 섞지 말 것"으로 명시 — 즉 추적 자체가 의도와 어긋남.
-- **첫 push 전 처리 필요**:
-  ```bash
-  # 1. 추적 해제 (워킹 트리에는 남김)
-  git rm --cached .heartbeat
-  # 2. .gitignore에 추가
-  echo ".heartbeat" >> .gitignore
-  # 3. 커밋
-  git add .gitignore
-  git commit -m "chore: untrack .heartbeat runtime file"
-  ```
-- 이 커밋은 v0.1.0 태그 **이후** 들어가므로 0.1.1 변경 후보로 함께 묶을지 판단 필요.
+- `.heartbeat`는 원래 `4bafda5` (initial commit)에 포함되어 git에 추적 중이었고, `codingbot run`이 매 사이클 갱신해 `git status`를 오염시켰음.
+- `051eb37`에서 `git rm --cached .heartbeat` + `.gitignore` 등록으로 추적 해제. 워킹 트리 사본은 유지.
+- 본 커밋은 `v0.1.0` 태그 이후이므로 `0.1.1` 변경 후보에 포함됨 (`docs/release-notes-0.1.1.md` 참고).
 
 ### 2. 비밀/큰 바이너리 점검
 

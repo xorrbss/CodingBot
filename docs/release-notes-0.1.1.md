@@ -23,6 +23,10 @@
 
 - **`auto_approve._skip` → `_defer_to_user` (`M-11`, `a6575f1`)** — private helper rename. "skip"이 부정확한 표현이었음 (자동 승인 안 하고 사용자에게 묻는 것이 의도). 로그 이벤트도 `auto_skip` → `auto_defer_to_user`.
 
+### Chore
+
+- **`.heartbeat` 추적 해제 (`051eb37`)** — 원래 `4bafda5` initial commit에 잘못 포함되어 있던 런타임 상태 파일을 `.gitignore`로 옮김. 첫 원격 push 전 BLOCKER였음. 워킹 트리 사본은 유지되므로 기존 사용자 영향 없음.
+
 ### 문서
 
 - spec 문서(`docs/superpowers/specs/2026-04-30-codingbot-design.md`) 0.1.0 이후 인터페이스 drift 6건 반영 (runner exit code, `_increment`, `lru_cache`, lazy import, transcript TODO[BLOCKED], 에러 핸들링 표).
