@@ -1,8 +1,9 @@
-# CodingBot 0.1.1 Release Notes (DRAFT)
+# CodingBot 0.1.1 Release Notes
 
-- 상태: **draft** — 실제 릴리스 시점에 pyproject `version = "0.1.1"` bump + `git tag v0.1.1` 함께 진행
+- 상태: 로컬 태그 완료 (push는 사용자 승인 게이트)
 - 베이스: `v0.1.0` (commit `8ac96f1`)
-- 대상: 0.1.0 출시 직후 polish 4건 (모두 호환성 유지, 사용자 영향 미미)
+- 대상: 0.1.0 출시 직후 polish 5건 (모두 호환성 유지, 사용자 영향 미미)
+- 결정: I-4/I-5 transcript 정공법은 실제 JSONL 샘플 확보 필요 → **0.1.2로 이월**
 
 ## 요약
 
@@ -48,8 +49,8 @@
 
 ## 출시 체크리스트
 
-- [ ] `I-5 + I-4` 정공법 처리 여부 결정 (samp​le 확보 가능하면 0.1.1에 포함, 아니면 0.1.2로 이월)
-- [ ] `pyproject.toml` `version = "0.1.1"` bump
-- [ ] `git tag -a v0.1.1 -m "v0.1.1: post-ship polish"`
-- [ ] 본 문서를 `docs/release-notes-0.1.1.md`로 확정 (draft 표시 제거)
-- [ ] 원격 설정되어 있다면 `git push --tags`
+- [x] `I-5 + I-4` 정공법 처리 여부 결정 — 0.1.2로 이월 (외부 샘플 필요)
+- [x] `pyproject.toml` `version = "0.1.1"` bump
+- [x] `git tag -a v0.1.1 -m "v0.1.1: post-ship polish"`
+- [x] 본 문서를 `docs/release-notes-0.1.1.md`로 확정 (draft 표시 제거)
+- [ ] 원격 설정되어 있다면 `git push --tags` — **사용자 승인 게이트** (`docs/push-procedure.md` 참고)
