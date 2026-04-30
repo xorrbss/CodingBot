@@ -1,91 +1,80 @@
 # CodingBot 개발 핸드오프
 
-**작성일**: 2026-05-01 (5th update — 원격 push 완료)
+**작성일**: 2026-05-01 (6th update — 0.1.2 로컬 태그 완료)
 **대상**: 다음 작업 세션
 
 ---
 
 ## (a) 지금까지 한 일
 
-### 0.1.1 출시 + 원격 push 완료
+### 0.1.2 로컬 태그 완료
 
-- 로컬 annotated 태그 `v0.1.1` 생성됨 (commit `c2957db`)
-- `pyproject.toml` `version = "0.1.1"`
-- **원격 push 완료** (2026-05-01):
-  - origin: `git@github.com:xorrbss/CodingBot.git`
-  - `master` HEAD `0247e27` 동기화 (ahead 0 / behind 0)
-  - 태그 `v0.1.0` (`8ac96f1`) + `v0.1.1` (`c2957db`) annotated 메타 보존하여 푸시됨
-  - push 자체는 사용자가 직접 실행 (이 세션에서는 사전 점검 + 사후 검증만)
+- `pyproject.toml` `version = "0.1.2"`
+- 로컬 annotated 태그 `v0.1.2` 생성 (commit `<release-commit>`)
+- **push는 미실행 — 사용자 승인 게이트**:
+  - 0.1.1까지 origin: `git@github.com:xorrbss/CodingBot.git`, master `0247e27`, tags `v0.1.0`/`v0.1.1`
+  - 0.1.2 master HEAD와 `v0.1.2`는 **로컬에만 존재**. push procedure는 `docs/push-procedure.md`.
 
-### 이번 세션 작업 요약 (D → B → C → 추가)
+### 이번 세션 작업 요약 (Unit-1 → Unit-2 → Unit-3)
 
 | 단계 | 내용 | 산출 커밋 |
 |---|---|---|
-| D | spec drift 6건 패치 (runner exit code, state API 확장, lru_cache, transcript I-4/I-5 BLOCKED, lazy import, 에러 표) | `d5d811b` |
-| B | `0.1.1` release notes 초안 작성 | `44b23d0` |
-| C | 원격 push 절차 문서화 (`docs/push-procedure.md`) | `fbed975` |
-| 후속 | `.heartbeat` 추적 해제 (initial commit에 잘못 포함되어 있던 런타임 파일) | `051eb37` |
-| 후속 | push procedure / release notes에 `.heartbeat` 해소 반영 | `f291a74` |
-| 출시 | `pyproject` 0.1.0→0.1.1 + release notes 확정 + `v0.1.1` 태그 | `c2957db` |
+| Unit-1 (I-5) | transcript schema 정공법 재구성 + fixture 4개 갱신 + 실제 세션 fixture 신규 + 회귀 테스트 5건 + docstring TODO 제거 | `91c1051` |
+| Unit-2 (I-4) | `last_assistant_text` tail-style 전환 (`_iter_lines_reverse` 64KB chunk 역방향) + 회귀 테스트 7건 | `12ad542` |
+| Unit-3 (release draft) | `pyproject` 0.1.2 bump + release notes 0.1.2 draft + spec drift 정리 (§5.6 BLOCKED 해소 표시) | `cbb79e6` |
+| Unit-3 (release finalize) | release notes draft 표시 제거, HANDOFF 갱신, 본 commit 위에 `v0.1.2` 태그 | (이 commit) |
 
-### 0.1.0 → 0.1.1에 포함된 변경 (히스토리 재확인용)
+### 0.1.1 → 0.1.2에 포함된 변경
 
 | ID | 내용 | 커밋 |
 |---|---|---|
-| M-11 | `auto_approve._skip` → `_defer_to_user` rename | `a6575f1` |
-| I-3 | `config.load` `@lru_cache(maxsize=1)` + conftest cache_clear | `cf4c3ef` |
-| I-2 | `state.record_*` 락 안 read-modify-write (`_increment` 헬퍼) | `57a6c90` |
-| M-5 | `runner.run() -> int`, CLI에서 그대로 전파 | `7f80344` |
-| chore | `.heartbeat` untrack | `051eb37` |
-
-(0.1.0 직전 final review 항목 I-1/I-5는 `v0.1.0`에 포함됨)
+| I-5 | transcript schema 정공법 (top-level `type`, `message.content` blocks) | `91c1051` |
+| I-4 | `last_assistant_text` tail-style 64KB chunk 역방향 read | `12ad542` |
+| release | pyproject 0.1.2 + release notes draft + spec drift 정리 | `cbb79e6` |
 
 ### Git history (HEAD 기준)
 
 ```
-c2957db release: 0.1.1                                          ← v0.1.1 tag
-f291a74 docs: reflect .heartbeat untrack in push procedure + 0.1.1 notes
-051eb37 chore: untrack .heartbeat runtime file
-fbed975 docs: add push procedure for first remote setup
-44b23d0 docs: add 0.1.1 release notes draft
-d5d811b docs(spec): reflect 0.1.0 post-ship interface changes
-c3fba70 docs(handoff): update for v0.1.0 ship + post-ship polish
-7f80344 fix(runner,cli): propagate runner exit code to CLI (M-5)
-57a6c90 fix(state): atomic read-modify-write for record_* counters (I-2)
-cf4c3ef perf(config): lru_cache config.load for hook hot path (I-3)
-a6575f1 refactor(auto_approve): rename _skip to _defer_to_user (M-11)
-8ac96f1 docs(transcript): mark schema mismatch as TODO[BLOCKED]   ← v0.1.0 tag
-e867dc7 perf(llm_judge): lazy-import anthropic SDK inside _client()
+<release finalize>  release: 0.1.2 finalize (notes/handoff)         ← v0.1.2 tag
+cbb79e6  release: 0.1.2 draft (transcript I-4/I-5 정공법)
+12ad542  perf(transcript): tail-style read for last_assistant_text (I-4)
+91c1051  fix(transcript): reconstruct iter_messages with real session schema (I-5)
+fb449c8  docs(handoff): mark remote push completed
+0247e27  docs(handoff): update for 0.1.1 ship + spec drift / push procedure / heartbeat untrack
+c2957db  release: 0.1.1                                              ← v0.1.1 tag
 ... (이전 commits)
 ```
 
 ### 테스트 현황
 
-- **87/87 pass + 1 skipped** (이전 세션부터 변동 없음 — 이번 세션은 docs/release만 변경)
+- **99 pass + 1 skipped** (이전 87 + 회귀 12건: I-5 schema 5 + I-4 tail-style 7)
 - e2e는 여전히 manual trigger only (`-m e2e`)
+- `// TODO`, `# TODO` grep 시 코드 BLOCKED **0건**
 
 ---
 
 ## (b) 다음에 할 일
 
-### 0.1.2 후보 (현재 외부 입력 대기)
+### 0.1.2 출시 마무리 (사용자 승인 게이트)
 
-1. **I-4 + I-5 transcript 정공법** — 두 항목 모두 `transcript.py` 수정. 분리하면 작업 중복.
-   - I-5: 실제 Claude Code session JSONL 1건 확보 → 정확한 스키마 확인
-     → `iter_messages()`/`last_assistant_text()` 재구성 + fixture 갱신
-   - I-4: 같은 작업에서 `last_assistant_text`를 tail-style 읽기로 전환
-     (현재는 전체 파일 메모리 로딩 — 큰 transcript에서 비효율)
-   - **차단 요인**: 실제 transcript 샘플 1건. 사용자 환경에서 확보 필요.
+```bash
+# 사전 점검
+git status                   # clean working tree
+git log v0.1.2 --no-patch -1 # tag 메시지 확인
+git log origin/master..HEAD --oneline  # push 대상 확인 (4 commits)
 
-### 원격 push 후속 (필요 시)
+# push (사용자 명시 승인 후)
+git push origin master
+git push origin v0.1.2
+```
 
-- origin 설정 + 첫 push + 태그 push 모두 완료. 다음 push부터는 일상 흐름.
-- `claude/thirsty-turing-ba2ec8` 로컬 임시 브랜치는 origin에 push 안 됨 (master와 동일 commit). 필요 없으면 `git branch -d claude/thirsty-turing-ba2ec8`로 정리 가능.
+push 후 `docs/push-procedure.md` D 섹션의 사후 확인 수행.
 
-### 더 작은 polish (필요 시)
+### 0.1.x 추가 polish 후보 (우선순위 낮음)
 
-- 모두 0.1.x 범위에서 무리 없음. 우선순위 낮음.
-- 현재 HEAD에서 `// TODO`, `# TODO` grep 시 I-5 BLOCKED 1건만 남아있음.
+- 현재 알려진 BLOCKED 0건. 무리 없이 0.1.x 범위 내.
+- e2e 수동 검증 (실제 Claude Code run에서 hook 동작 확인 — 비용 발생).
+- HANDOFF의 "지금까지 한 일" 항목이 누적되고 있어 0.2.0 시점에 archive 정리 검토.
 
 ---
 
@@ -97,26 +86,22 @@ e867dc7 perf(llm_judge): lazy-import anthropic SDK inside _client()
 - Windows 11. Git Bash
 - Python: 3.11 (`py -m pytest`로 실행, `.venv` 없음)
 - Git user: `CodingBot Dev <dev@codingbot.local>`
-- `.heartbeat`은 이제 `.gitignore`에 등록되어 추적 안 됨 (커밋 `051eb37`).
-  워킹 트리에는 남아있고 `codingbot run`이 갱신함.
 
-### 아키텍처 핵심 (변하지 않음)
+### 0.1.2에서 변경된 인터페이스 (spec §5.6 반영됨)
 
-- Hooks(PreToolUse + Stop) + shell-loop runner
-- LLM 위험도 판단 + 휴리스틱 화이트/블랙리스트
-- 사이클간 컨텍스트 초기화는 핸드오프 문서로
-- Final check + 정지 조건 (stop signal / 30분 / 50회)
+- `transcript.iter_messages(path)` — 이제 실제 Claude Code session JSONL의 top-level `type` + `message.content` blocks 기반. `type ∈ {user, assistant}`만 yield. assistant는 `text` block만 join. thinking/tool_use only assistant, tool_result only user는 skip. 외부 인터페이스(`Message = {"role","content": str}`)는 유지.
+- `transcript.last_assistant_text(path)` — 64KB chunk 역방향 read. 큰 transcript에서도 메모리 일정.
+- 다운스트림(`auto_approve`, `handoff_or_continue`, `llm_judge`)은 코드 수정 0건.
+- 이전 schema(`{"role","content":str}`) JSONL 파일은 더 이상 파싱 안 됨 (의도 — 실제 Claude Code 세션은 항상 새 schema).
 
-### 0.1.0 이후 변경된 인터페이스 (spec에도 반영됨)
+### 0.1.0 이후 누적된 인터페이스 변경 (spec에 반영됨)
 
-- `runner.run(prompt) -> int` (이전 None) — 0=정상, 1=락 충돌, 2=Claude 연속 비정상
+- `runner.run(prompt) -> int` (0=정상, 1=락 충돌, 2=Claude 연속 비정상)
 - `state._increment(key)` 신규 (private). `record_*`는 모두 이걸 경유
-- `config.load`에 `@lru_cache(maxsize=1)` — 테스트는 `tmp_codingbot_home`
-  fixture가 자동으로 `cache_clear()` 호출
+- `config.load`에 `@lru_cache(maxsize=1)`. 테스트는 `tmp_codingbot_home` fixture가 자동 `cache_clear()`
 - `auto_approve._defer_to_user` (이전 `_skip`)
-- `llm_judge.py`에서 `import anthropic`은 module top에서 사라지고
-  `_client()` 안에 lazy. mock fixture(`mocker.patch("anthropic.Anthropic", ...)`)
-  는 이름 기반 patch라 그대로 작동.
+- `llm_judge.py`에서 `import anthropic`은 `_client()` 안 lazy
+- (0.1.2) `transcript` 모듈 위 항목
 
 ### 모듈 의존 그래프 (변경 없음)
 
@@ -135,27 +120,20 @@ install_hooks   (leaf)
 hooks/auto_approve         → heuristics, llm_judge, logger, state, transcript
 hooks/handoff_or_continue  → handoff, heuristics, llm_judge, logger, state, transcript
 ```
-모든 파일 ≤ 140 LOC
+모든 파일 ≤ 145 LOC (transcript.py 143)
 
 ### 테스트 격리 패턴 (변경 없음)
 
-- `tests/conftest.py`의 `tmp_codingbot_home` fixture가:
-  - `CODINGBOT_HOME` env 격리
-  - `config.load.cache_clear()` 호출 — 이전 테스트의 캐시 무효화
+- `tests/conftest.py`의 `tmp_codingbot_home` fixture: `CODINGBOT_HOME` env 격리 + `config.load.cache_clear()`
 - Hook 테스트는 subprocess 기반. `_run_hook` helper에 `timeout=60`
-
-### TODO[BLOCKED] 위치 (현재 1건)
-
-- `codingbot/transcript.py` 상단 docstring — I-5 schema mismatch.
-  실제 샘플 확보 후 **0.1.2**에서 해소 (이전 핸드오프는 0.1.1로 잡혀 있었음 — 외부 입력 못 받아 이월).
+- transcript fixture: `tests/fixtures/transcripts/` 아래 4개 (`sample_simple`, `sample_continuing`, `sample_done`, `sample_real_session`). 모두 새 schema.
 
 ### 참고 위치
 
-- spec: `docs/superpowers/specs/2026-04-30-codingbot-design.md` (0.1.0 이후 drift 반영됨)
+- spec: `docs/superpowers/specs/2026-04-30-codingbot-design.md` (§5.6 0.1.2 drift 반영됨)
 - plan: `docs/superpowers/plans/2026-04-30-codingbot.md` (구현 체크리스트 — historical artifact, 갱신 안 함)
-- release notes: `docs/release-notes-0.1.1.md`
+- release notes: `docs/release-notes-0.1.1.md`, `docs/release-notes-0.1.2.md`
 - push procedure: `docs/push-procedure.md`
-- README: 사용자 문서 (변경 불필요)
 
 ---
 
@@ -163,10 +141,9 @@ hooks/handoff_or_continue  → handoff, heuristics, llm_judge, logger, state, tr
 
 다음 세션 시작 시:
 
-> "CodingBot **0.1.1** 로컬+원격 동기화 완료
-> (origin `git@github.com:xorrbss/CodingBot.git`, master `0247e27`,
-> tags `v0.1.0`/`v0.1.1`). 87/87 green. 남은 건 I-4+I-5 정공법
-> (실제 transcript 샘플 필요, 0.1.2 후보)뿐. 어디부터 갈까요?"
+> "CodingBot **0.1.2** 로컬 태그 완료 (transcript I-4/I-5 정공법).
+> master HEAD와 `v0.1.2`는 로컬만, origin은 `0247e27`/`v0.1.1`까지.
+> 99/99 green, BLOCKED 0건. 0.1.2 push할까, 아니면 다른 작업?"
 
-사용자가 transcript 샘플 제공 가능 → I-5+I-4 정공법 진행 → 0.1.2 준비.
-샘플 보류 → 더 작은 polish 후보 탐색 또는 e2e 수동 검증.
+push → `docs/push-procedure.md` 절차.
+다른 작업 → 0.1.x polish 후보 또는 e2e 수동 검증.

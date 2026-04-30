@@ -1,6 +1,6 @@
 # CodingBot 0.1.2 Release Notes
 
-- 상태: draft (pyproject bump + 본 문서 확정 후 태그 예정)
+- 상태: 로컬 태그 완료 (push는 사용자 승인 게이트)
 - 베이스: `v0.1.1` (commit `c2957db`)
 - 대상: 0.1.1에서 이월된 transcript 정공법 마무리 (I-4 + I-5)
 - 결정: 실제 Claude Code session JSONL 샘플 1건 확보됨 → 정공법 재구성 + tail-style 전환 동시 진행
@@ -54,6 +54,6 @@
 - [x] I-4 + I-5 정공법 처리
 - [x] `pyproject.toml` `version = "0.1.2"` bump
 - [x] 회귀 테스트 통과 (99/99)
-- [ ] `git tag -a v0.1.2 -m "v0.1.2: transcript I-4/I-5"` — 사용자 승인 게이트
-- [ ] 본 문서를 release notes 0.1.2로 확정 (draft 표시 제거)
-- [ ] 원격 push — **사용자 승인 게이트** (`docs/push-procedure.md` 참고)
+- [x] 본 문서를 release notes 0.1.2로 확정 (draft 표시 제거)
+- [x] `git tag -a v0.1.2 -m "v0.1.2: transcript I-4/I-5"`
+- [ ] 원격 push (`git push origin master && git push origin v0.1.2`) — **사용자 승인 게이트** (`docs/push-procedure.md` 참고)
