@@ -3,8 +3,6 @@ import json
 import os
 from typing import Any, Dict, List
 
-import anthropic
-
 from codingbot import config
 
 
@@ -35,6 +33,7 @@ _CLASSIFY_SYSTEM = (
 
 
 def _client():
+    import anthropic  # lazy: SDK import (~3s) deferred until first hook call needs it
     cfg = config.load()
     key = os.environ.get(cfg.api_key_env)
     if not key:
