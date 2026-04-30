@@ -3,8 +3,6 @@ import os
 import signal
 import subprocess
 import sys
-from pathlib import Path
-from typing import Optional
 
 from codingbot import handoff, logger, paths, state
 
