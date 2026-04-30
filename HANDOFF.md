@@ -1,17 +1,21 @@
 # CodingBot 개발 핸드오프
 
-**작성일**: 2026-04-30 (4th update — 0.1.1 ship + spec drift 해소 + push procedure)
+**작성일**: 2026-05-01 (5th update — 원격 push 완료)
 **대상**: 다음 작업 세션
 
 ---
 
 ## (a) 지금까지 한 일
 
-### 0.1.1 출시 완료 (이번 세션)
+### 0.1.1 출시 + 원격 push 완료
 
 - 로컬 annotated 태그 `v0.1.1` 생성됨 (commit `c2957db`)
 - `pyproject.toml` `version = "0.1.1"`
-- 원격(remote) 여전히 미설정 → push는 사용자 게이트 (`docs/push-procedure.md`)
+- **원격 push 완료** (2026-05-01):
+  - origin: `git@github.com:xorrbss/CodingBot.git`
+  - `master` HEAD `0247e27` 동기화 (ahead 0 / behind 0)
+  - 태그 `v0.1.0` (`8ac96f1`) + `v0.1.1` (`c2957db`) annotated 메타 보존하여 푸시됨
+  - push 자체는 사용자가 직접 실행 (이 세션에서는 사전 점검 + 사후 검증만)
 
 ### 이번 세션 작업 요약 (D → B → C → 추가)
 
@@ -73,15 +77,10 @@ e867dc7 perf(llm_judge): lazy-import anthropic SDK inside _client()
      (현재는 전체 파일 메모리 로딩 — 큰 transcript에서 비효율)
    - **차단 요인**: 실제 transcript 샘플 1건. 사용자 환경에서 확보 필요.
 
-### 원격 push (사용자 결정)
+### 원격 push 후속 (필요 시)
 
-- 현재 `git remote` 비어있음
-- 절차/주의사항 모두 `docs/push-procedure.md`에 정리됨
-- 사용자 명시 승인 후 실행:
-  - origin URL 결정
-  - 비밀/큰 바이너리 사전 점검
-  - `git push -u origin master`
-  - `git push origin v0.1.0 v0.1.1`
+- origin 설정 + 첫 push + 태그 push 모두 완료. 다음 push부터는 일상 흐름.
+- `claude/thirsty-turing-ba2ec8` 로컬 임시 브랜치는 origin에 push 안 됨 (master와 동일 commit). 필요 없으면 `git branch -d claude/thirsty-turing-ba2ec8`로 정리 가능.
 
 ### 더 작은 polish (필요 시)
 
@@ -164,11 +163,10 @@ hooks/handoff_or_continue  → handoff, heuristics, llm_judge, logger, state, tr
 
 다음 세션 시작 시:
 
-> "이전 세션에서 CodingBot **0.1.1** 로컬 태그됨 (`c2957db`). polish 4건 +
-> `.heartbeat` untrack + spec/release-notes/push-procedure 문서 정비 완료.
-> 87/87 green. 남은 건 I-4+I-5 정공법(실제 transcript 샘플 필요, 0.1.2 후보)과
-> 원격 push (origin URL + 사용자 승인 필요). 어디부터 갈까요?"
+> "CodingBot **0.1.1** 로컬+원격 동기화 완료
+> (origin `git@github.com:xorrbss/CodingBot.git`, master `0247e27`,
+> tags `v0.1.0`/`v0.1.1`). 87/87 green. 남은 건 I-4+I-5 정공법
+> (실제 transcript 샘플 필요, 0.1.2 후보)뿐. 어디부터 갈까요?"
 
 사용자가 transcript 샘플 제공 가능 → I-5+I-4 정공법 진행 → 0.1.2 준비.
-origin URL 제공 + push 승인 → `docs/push-procedure.md` 절차 실행.
-둘 다 보류 → 더 작은 polish 후보 탐색 또는 e2e 수동 검증.
+샘플 보류 → 더 작은 polish 후보 탐색 또는 e2e 수동 검증.
