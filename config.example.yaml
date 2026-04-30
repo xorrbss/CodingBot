@@ -1,0 +1,22 @@
+# CodingBot 설정 예시. ~/.codingbot/config.yaml로 복사하여 사용.
+enabled: true
+time_limit_minutes: 30
+max_cycles_per_run: 50
+judge_model: "claude-haiku-4-5-20251001"
+api_key_env: "ANTHROPIC_API_KEY"
+safe_tools:
+  - Read
+  - Glob
+  - Grep
+  - TodoWrite
+risky_patterns:
+  - "rm -rf"
+  - "git push --force"
+  - "git push -f"
+  - "git reset --hard"
+  - "DROP TABLE"
+  - "DROP DATABASE"
+  - ":(){:|:&};:"
+  - "mkfs"
+  - "dd if="
+log_level: info

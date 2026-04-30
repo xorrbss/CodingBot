@@ -1,0 +1,33 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "codingbot"
+version = "0.1.0"
+description = "Claude Code 자동 승인 + 자동 진행 도구"
+requires-python = ">=3.11"
+dependencies = [
+    "anthropic>=0.40.0",
+    "pyyaml>=6.0",
+    "portalocker>=2.8.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-mock>=3.12",
+    "pytest-cov>=4.1",
+]
+
+[project.scripts]
+codingbot = "codingbot.cli:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "e2e: real Claude Code smoke tests (manual, costs money)",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["codingbot"]

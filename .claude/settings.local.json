@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C /c/project/CodingBot status)",
+      "Bash(git init *)",
+      "Bash(git config *)",
+      "Bash(python -m venv .venv)",
+      "Bash(git -C /c/project/CodingBot add .gitignore pyproject.toml codingbot/__init__.py codingbot/hooks/__init__.py tests/__init__.py README.md)",
+      "Bash(git -C /c/project/CodingBot commit -m \"chore: scaffold codingbot package\")",
+      "Bash(git -C /c/project/CodingBot log --oneline)",
+      "Bash(git -C /c/project/CodingBot add codingbot/paths.py tests/conftest.py tests/unit/__init__.py tests/unit/test_paths.py)",
+      "Bash(git -C /c/project/CodingBot commit -m ' *)",
+      "Bash(python -m pytest tests/unit/test_paths.py -v)",
+      "Bash(.venv/Scripts/python.exe -m pytest tests/unit/test_paths.py -v)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(python -m pytest tests/unit/test_logger.py -v)",
+      "Bash(pip show *)",
+      "Bash(python -c \"import codingbot.logger\")",
+      "Bash(pip install *)",
+      "Bash(.venv/Scripts/python.exe -m pytest tests/unit/test_logger.py -v)",
+      "Bash(.venv/Scripts/python.exe -m pytest tests/unit/test_config.py -v)",
+      "Bash(python -m pytest tests/unit/test_config.py -v)",
+      "Bash(.venv/Scripts/python.exe -m pytest tests/unit/test_state.py -v)",
+      "Bash(.venv/Scripts/python.exe -m pytest tests/unit/test_handoff.py -v)",
+      "Bash(git -C /c/project/CodingBot add codingbot/heuristics.py tests/unit/test_heuristics.py)",
+      "Bash(.venv/Scripts/python.exe -m pytest tests/unit/test_heuristics.py -v)"
+    ]
+  }
+}

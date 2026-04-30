@@ -1,0 +1,5 @@
+{"role": "user", "content": "사용자 인증 모듈 구현해줘"}
+{"role": "assistant", "content": "먼저 기존 코드 살펴볼게요"}
+{"role": "tool_use", "name": "Read", "input": {"file_path": "auth.py"}}
+{"role": "tool_result", "content": "..."}
+{"role": "assistant", "content": "auth.py 분석 완료. 구현 시작합니다."}
