@@ -1,6 +1,7 @@
 """state.json 관리 + 정지 조건 검사."""
 import json
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Dict
 
 import portalocker
@@ -17,9 +18,7 @@ def _initial_state() -> Dict[str, Any]:
     }
 
 
-def read() -> Dict[str, Any]:
-    """state.json 읽기. 누락/손상 시 초기 상태 반환."""
-    state_path = paths.state_file()
+def _read_unlocked(state_path: Path) -> Dict[str, Any]:
     if not state_path.exists():
         return _initial_state()
     try:
@@ -30,13 +29,22 @@ def read() -> Dict[str, Any]:
         return _initial_state()
 
 
+def _write_unlocked(state_path: Path, s: Dict[str, Any]) -> None:
+    with state_path.open("w", encoding="utf-8") as f:
+        json.dump(s, f, ensure_ascii=False, indent=2)
+
+
+def read() -> Dict[str, Any]:
+    """state.json 읽기. 누락/손상 시 초기 상태 반환."""
+    return _read_unlocked(paths.state_file())
+
+
 def write(s: Dict[str, Any]) -> None:
     """state.json 쓰기 (락 보호)."""
     paths.ensure_home()
     state_path = paths.state_file()
     with portalocker.Lock(str(state_path) + ".lock", timeout=5):
-        with state_path.open("w", encoding="utf-8") as f:
-            json.dump(s, f, ensure_ascii=False, indent=2)
+        _write_unlocked(state_path, s)
 
 
 def start_cycle() -> None:
@@ -44,22 +52,26 @@ def start_cycle() -> None:
     write(_initial_state())
 
 
+def _increment(key: str) -> None:
+    """카운터를 락 안에서 read-modify-write. 동시 실행 시 카운트 손실 방지."""
+    paths.ensure_home()
+    state_path = paths.state_file()
+    with portalocker.Lock(str(state_path) + ".lock", timeout=5):
+        s = _read_unlocked(state_path)
+        s[key] = s.get(key, 0) + 1
+        _write_unlocked(state_path, s)
+
+
 def record_cycle() -> None:
-    s = read()
-    s["cycles_this_run"] = s.get("cycles_this_run", 0) + 1
-    write(s)
+    _increment("cycles_this_run")
 
 
 def record_auto_approve() -> None:
-    s = read()
-    s["auto_approve_count"] = s.get("auto_approve_count", 0) + 1
-    write(s)
+    _increment("auto_approve_count")
 
 
 def record_auto_continue() -> None:
-    s = read()
-    s["auto_continue_count"] = s.get("auto_continue_count", 0) + 1
-    write(s)
+    _increment("auto_continue_count")
 
 
 def clear_stop_signal() -> None:
