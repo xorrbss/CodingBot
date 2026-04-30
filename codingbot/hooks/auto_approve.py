@@ -30,8 +30,8 @@ def _approve(reason: str, judge: str) -> None:
     print(json.dumps({"decision": "approve", "reason": reason}))
 
 
-def _skip(why: str, judge: str) -> None:
-    logger.info("auto_skip", judge=judge, reason=why)
+def _defer_to_user(why: str, judge: str) -> None:
+    logger.info("auto_defer_to_user", judge=judge, reason=why)
 
 
 def main() -> int:
@@ -43,7 +43,7 @@ def main() -> int:
         transcript_path = data.get("transcript_path", "")
 
         if state.should_stop():
-            _skip("stop_signal_active", "rule")
+            _defer_to_user("stop_signal_active", "rule")
             return 0
 
         verdict = heuristics.classify_tool_call(tool_name, tool_input)
@@ -51,7 +51,7 @@ def main() -> int:
             _approve(f"safe ({tool_name})", judge="heuristic")
             return 0
         if verdict == "risky":
-            _skip(f"risky ({tool_name})", judge="heuristic")
+            _defer_to_user(f"risky ({tool_name})", judge="heuristic")
             return 0
 
         try:
@@ -59,13 +59,13 @@ def main() -> int:
             result = llm_judge.evaluate_tool_safety(tool_name, tool_input, ctx)
         except llm_judge.JudgeError as e:
             logger.warn("llm_api_error", hook="auto_approve", error=str(e))
-            _skip("llm_failed", judge="llm")
+            _defer_to_user("llm_failed", judge="llm")
             return 0
 
         if result["decision"] == "approve":
             _approve(result.get("reason", ""), judge="llm")
         else:
-            _skip(result.get("reason", "ask"), judge="llm")
+            _defer_to_user(result.get("reason", "ask"), judge="llm")
         return 0
 
     except Exception as e:
