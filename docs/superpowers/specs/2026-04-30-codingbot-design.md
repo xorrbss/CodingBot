@@ -247,16 +247,18 @@ log_level: "info"
 
 ### 5.6 `transcript.py`
 
-Claude Code transcript는 `.jsonl` 포맷. 각 줄은 한 메시지의 JSON.
+Claude Code transcript는 `.jsonl` 포맷. 각 line은 top-level `type` 필드를 가진 entry. 우리가 보는 message는 `type ∈ {"user","assistant"}` + `message.content` (assistant는 block list, user는 str 또는 tool_result list).
 
-API:
+API (모두 normalized `Message = {"role","content": str}` 반환):
 - `read_recent(path, n=5) -> list[Message]`
-- `last_assistant_text(path) -> str | None`
-- `iter_messages(path) -> Iterator[Message]`
+- `last_assistant_text(path) -> str | None` — tail-style 역방향 chunk 읽기 (전체 파일 메모리 로딩 안 함)
+- `iter_messages(path) -> Iterator[Message]` — forward 스캔, `text` block만 추출
 
-**알려진 이슈 (TODO[BLOCKED], 0.1.0 시점)**:
-- I-5: 현재 구현은 추정 schema 기반. 실제 Claude Code session JSONL 샘플 확보 후 0.1.1에서 정공법 재구성 예정 (CLAUDE.md "가정 금지" 위반 회피).
-- I-4: `last_assistant_text`는 전체 파일 메모리 로딩 — 큰 transcript에서 비효율. I-5와 함께 tail-style 읽기로 전환 예정.
+추출 텍스트가 없는 entry(thinking/tool_use only assistant, tool_result only user)는 yield 안 함 — 다운스트림 LLM judge / heuristics는 텍스트만 본다.
+
+**해소된 이슈 (0.1.2)**:
+- I-5 (`91c1051`): 추정 schema → 실제 session JSONL schema 정공법 재구성. 회귀 테스트는 `tests/fixtures/transcripts/sample_real_session.jsonl` (실제 세션 추출).
+- I-4 (`12ad542`): `last_assistant_text`를 64KB chunk 역방향 read로 전환. 큰 transcript에서도 메모리 일정.
 
 ### 5.7 `heuristics.py`
 
