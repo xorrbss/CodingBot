@@ -1,0 +1,2 @@
+{"role": "user", "content": "리팩터링 해줘"}
+{"role": "assistant", "content": "auth.py 정리 끝났어요. 이제 db.py 살펴볼게요."}

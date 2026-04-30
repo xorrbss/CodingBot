@@ -1,0 +1,2 @@
+{"role": "user", "content": "auth 모듈 구현해줘"}
+{"role": "assistant", "content": "auth.py 구현 완료했습니다. 모든 테스트 통과."}
