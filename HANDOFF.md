@@ -12,8 +12,8 @@
 - `pyproject.toml` `version = "0.1.2"`
 - 로컬 annotated 태그 `v0.1.2` 생성 (commit `<release-commit>`)
 - **push는 미실행 — 사용자 승인 게이트**:
-  - 0.1.1까지 origin: `git@github.com:xorrbss/CodingBot.git`, master `0247e27`, tags `v0.1.0`/`v0.1.1`
-  - 0.1.2 master HEAD와 `v0.1.2`는 **로컬에만 존재**. push procedure는 `docs/push-procedure.md`.
+  - 현재 origin: `git@github.com:xorrbss/CodingBot.git`, master `fb449c8` (0.1.1 ship 후 HANDOFF 갱신까지 포함), tags `v0.1.0`/`v0.1.1`
+  - 0.1.2 commits 4건(`91c1051`, `12ad542`, `cbb79e6`, `16e70f1`)과 `v0.1.2` 태그는 **로컬에만 존재**. push procedure는 `docs/push-procedure.md`.
 
 ### 이번 세션 작업 요약 (Unit-1 → Unit-2 → Unit-3)
 
