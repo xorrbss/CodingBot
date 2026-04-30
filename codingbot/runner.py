@@ -65,13 +65,17 @@ def _release_lock() -> None:
         pass
 
 
-def run(initial_prompt: str) -> None:
+def run(initial_prompt: str) -> int:
+    """자동화 루프 실행.
+
+    Returns: 종료 코드 (0=정상, 1=락 충돌, 2=Claude Code 연속 비정상 종료).
+    """
     try:
         _acquire_lock()
     except RunnerLockError as e:
         logger.error("lock_conflict", error=str(e))
         print(f"[codingbot] {e}", file=sys.stderr)
-        return
+        return 1
 
     state.clear_stop_signal()
     handoff.clear()
@@ -81,6 +85,7 @@ def run(initial_prompt: str) -> None:
     final_check_pending = False
     abnormal_exits = 0
     interrupted = False
+    exit_status = 0
 
     def _on_sigint(signum, frame):
         nonlocal interrupted
@@ -119,6 +124,7 @@ def run(initial_prompt: str) -> None:
                         file=sys.stderr,
                     )
                     logger.error("run_end", reason="repeated_abnormal_exit")
+                    exit_status = 2
                     break
                 continue
             abnormal_exits = 0
@@ -133,3 +139,4 @@ def run(initial_prompt: str) -> None:
     finally:
         signal.signal(signal.SIGINT, prev_handler)
         _release_lock()
+    return exit_status

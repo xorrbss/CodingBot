@@ -7,8 +7,7 @@ from codingbot import config, install_hooks, paths, runner, state
 
 
 def _cmd_run(args: argparse.Namespace) -> int:
-    runner.run(args.prompt)
-    return 0
+    return runner.run(args.prompt)
 
 
 def _cmd_stop(args: argparse.Namespace) -> int:

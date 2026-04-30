@@ -34,9 +34,16 @@ def test_tail_log_outputs_lines(tmp_codingbot_home, capsys):
 
 
 def test_run_calls_runner(tmp_codingbot_home, mocker):
-    spy = mocker.patch("codingbot.runner.run")
+    spy = mocker.patch("codingbot.runner.run", return_value=0)
     cli.main(["run", "어떤 작업"])
     spy.assert_called_once_with("어떤 작업")
+
+
+def test_run_propagates_runner_exit_code(tmp_codingbot_home, mocker):
+    """M-5: runner가 비정상 종료 코드 반환 시 CLI도 그대로 전파."""
+    mocker.patch("codingbot.runner.run", return_value=1)
+    rc = cli.main(["run", "어떤 작업"])
+    assert rc == 1
 
 
 def test_install_hooks_calls_install(tmp_codingbot_home, mocker):

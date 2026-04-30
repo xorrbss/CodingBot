@@ -112,5 +112,18 @@ def test_concurrent_run_rejected(tmp_codingbot_home, monkeypatch):
     monkeypatch.setattr(runner, "_is_pid_alive", lambda pid: True)
     fake = FakeClaude([])
     monkeypatch.setattr(sp, "run", fake)
-    runner.run("초기")
+    rc = runner.run("초기")
     assert len(fake.calls) == 0
+    assert rc != 0  # M-5: 락 충돌 시 비정상 종료 코드
+
+
+def test_normal_flow_returns_zero(tmp_codingbot_home, monkeypatch):
+    """M-5: 정상 종료 시 0 반환."""
+    fake = FakeClaude([
+        {"writes_handoff": "x"},
+        {},
+        {},
+    ])
+    monkeypatch.setattr(sp, "run", fake)
+    rc = runner.run("초기")
+    assert rc == 0
