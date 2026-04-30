@@ -5,9 +5,11 @@ import pytest
 @pytest.fixture
 def tmp_codingbot_home(tmp_path, monkeypatch):
     """격리된 가짜 ~/.codingbot 디렉터리."""
+    from codingbot import config
     home = tmp_path / "codingbot_home"
     home.mkdir()
     monkeypatch.setenv("CODINGBOT_HOME", str(home))
+    config.load.cache_clear()  # I-3: 이전 테스트의 캐시된 Config 무효화
     return home
 
 

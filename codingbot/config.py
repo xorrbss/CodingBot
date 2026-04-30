@@ -1,5 +1,6 @@
 """사용자 설정 로딩. YAML + 기본값."""
 from dataclasses import dataclass, field
+from functools import lru_cache
 from typing import List
 
 import yaml
@@ -33,8 +34,14 @@ class Config:
     log_level: str = "info"
 
 
+@lru_cache(maxsize=1)
 def load() -> Config:
-    """config.yaml 로딩. 누락/손상 시 기본값."""
+    """config.yaml 로딩. 누락/손상 시 기본값.
+
+    Hook hot path에서 한 프로세스 안에 3-5번 호출되므로 캐시.
+    프로세스 수명 동안만 유효 (hook subprocess는 짧으므로 신선도 OK).
+    테스트는 conftest의 tmp_codingbot_home fixture에서 cache_clear() 호출.
+    """
     cfg = Config()
     cfg_path = paths.config_file()
     if not cfg_path.exists():
