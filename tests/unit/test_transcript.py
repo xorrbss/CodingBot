@@ -124,3 +124,99 @@ def test_real_session_sample_parses():
     assert text  # 비어있지 않음
     # 마지막 assistant text는 "다음 세션 시작용 프롬프트" 블록이어야 함
     assert "다음 세션" in text
+
+
+# ----- I-4 tail-style read 회귀 -----
+
+
+def _make_user_line(i: int, padding: int = 0) -> str:
+    """user noise line — content를 padding으로 채워 line 길이를 키운다."""
+    pad = "x" * padding
+    return (
+        '{"type":"user","message":{"role":"user","content":"noise '
+        + str(i)
+        + " "
+        + pad
+        + '"}}'
+    )
+
+
+def _make_asst_line(text: str) -> str:
+    return (
+        '{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"'
+        + text
+        + '"}]}}'
+    )
+
+
+def test_last_assistant_text_handles_multi_chunk_file(tmp_path):
+    """파일이 chunk_size(64KB)보다 커도 마지막 assistant text를 정확히 찾는다."""
+    p = tmp_path / "big.jsonl"
+    lines = []
+    # 약 100KB의 noise 후 assistant text, 다시 100KB의 noise
+    for i in range(200):
+        lines.append(_make_user_line(i, padding=500))  # ~500 bytes per line
+    lines.append(_make_asst_line("MARKER_TEXT"))
+    for i in range(200, 400):
+        lines.append(_make_user_line(i, padding=500))
+    p.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    assert p.stat().st_size > 65536  # chunk 경계 강제
+
+    assert transcript.last_assistant_text(p) == "MARKER_TEXT"
+
+
+def test_last_assistant_text_skips_thinking_only_at_end(tmp_path):
+    """파일 끝에 text 없는 assistant entry가 와도 더 거슬러 올라가 진짜 text를 찾는다."""
+    p = tmp_path / "trailing_thinking.jsonl"
+    p.write_text(
+        _make_asst_line("found me") + "\n"
+        '{"type":"user","message":{"role":"user","content":"질문"}}\n'
+        '{"type":"assistant","message":{"role":"assistant","content":[{"type":"thinking","thinking":"x"}]}}\n'
+        '{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"t","name":"R","input":{}}]}}\n',
+        encoding="utf-8",
+    )
+    assert transcript.last_assistant_text(p) == "found me"
+
+
+def test_last_assistant_text_no_trailing_newline(tmp_path):
+    """trailing \\n 없는 파일도 정상 파싱."""
+    p = tmp_path / "no_nl.jsonl"
+    content = (
+        '{"type":"user","message":{"role":"user","content":"hi"}}\n'
+        + _make_asst_line("last line no newline")
+    )
+    p.write_bytes(content.encode("utf-8"))
+    assert transcript.last_assistant_text(p) == "last line no newline"
+
+
+def test_last_assistant_text_handles_line_longer_than_chunk(tmp_path):
+    """단일 line이 chunk_size를 넘어도 leftover 누적으로 정상 파싱."""
+    p = tmp_path / "long_line.jsonl"
+    long_text = "L" * 100000  # 단일 line이 100KB
+    p.write_text(
+        '{"type":"user","message":{"role":"user","content":"first"}}\n'
+        + _make_asst_line(long_text) + "\n",
+        encoding="utf-8",
+    )
+    result = transcript.last_assistant_text(p)
+    assert result == long_text
+
+
+def test_last_assistant_text_empty_file(tmp_path):
+    p = tmp_path / "empty.jsonl"
+    p.write_text("", encoding="utf-8")
+    assert transcript.last_assistant_text(p) is None
+
+
+def test_last_assistant_text_missing_file(tmp_path):
+    assert transcript.last_assistant_text(tmp_path / "nope.jsonl") is None
+
+
+def test_last_assistant_text_no_assistant_in_file(tmp_path):
+    p = tmp_path / "users_only.jsonl"
+    p.write_text(
+        '{"type":"user","message":{"role":"user","content":"a"}}\n'
+        '{"type":"user","message":{"role":"user","content":"b"}}\n',
+        encoding="utf-8",
+    )
+    assert transcript.last_assistant_text(p) is None

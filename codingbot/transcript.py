@@ -82,11 +82,62 @@ def read_recent(path: Path, n: int = 5) -> List[Dict[str, Any]]:
     return msgs[-n:]
 
 
+# tail-style read를 위한 default chunk 크기. 평균적인 transcript line(수백 byte~수 KB)을
+# 1-2회 read로 끝내면서, 비정상적으로 긴 line(스킬 prompt embedded 등)도 leftover 누적으로
+# 처리할 수 있는 크기.
+_REVERSE_CHUNK_SIZE = 65536
+
+
+def _iter_lines_reverse(path: Path, chunk_size: int = _REVERSE_CHUNK_SIZE) -> Iterator[str]:
+    """파일을 끝에서부터 chunk 단위로 읽어 line을 역순으로 yield.
+
+    한 chunk 안에서 첫 piece는 chunk 경계에 잘린 partial line일 수 있어
+    leftover로 다음(이전 chunk) iteration에 prepend한다. 마지막 chunk
+    이후 남은 leftover가 파일의 첫 line이다. UTF-8 decode 실패는 replace.
+    """
+    with path.open("rb") as f:
+        f.seek(0, 2)
+        position = f.tell()
+        if position == 0:
+            return
+        leftover = b""
+        while position > 0:
+            read_size = min(chunk_size, position)
+            position -= read_size
+            f.seek(position)
+            chunk = f.read(read_size) + leftover
+            parts = chunk.split(b"\n")
+            leftover = parts[0]  # 이전 chunk와 합칠 partial line
+            for raw in reversed(parts[1:]):
+                if raw:
+                    yield raw.decode("utf-8", errors="replace")
+        if leftover:
+            yield leftover.decode("utf-8", errors="replace")
+
+
 def last_assistant_text(path: Path) -> Optional[str]:
-    """마지막 assistant 텍스트. 현재 구현은 메모리 로딩 — I-4에서 tail로 전환 예정."""
-    for msg in reversed(list(iter_messages(path))):
-        if msg.get("role") == "assistant":
-            content = msg.get("content")
-            if isinstance(content, str) and content:
-                return content
+    """파일을 끝에서부터 역방향 스캔, 마지막 assistant 텍스트 entry 반환.
+
+    전체 파일을 메모리에 올리지 않는다 (I-4). 손상 line은 조용히 skip
+    (역방향에서는 line 번호가 의미 없어서 warn 안 함 — `iter_messages`가
+    forward 스캔할 때 이미 warn한다).
+    """
+    if not path.exists():
+        return None
+    try:
+        for line in _iter_lines_reverse(path):
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                entry = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if not isinstance(entry, dict):
+                continue
+            msg = _normalize_entry(entry)
+            if msg and msg["role"] == "assistant" and msg["content"]:
+                return msg["content"]
+    except OSError as e:
+        logger.warn("transcript_read_error", path=str(path), error=str(e))
     return None
