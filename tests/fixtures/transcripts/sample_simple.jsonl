@@ -1,5 +1,9 @@
-{"role": "user", "content": "사용자 인증 모듈 구현해줘"}
-{"role": "assistant", "content": "먼저 기존 코드 살펴볼게요"}
-{"role": "tool_use", "name": "Read", "input": {"file_path": "auth.py"}}
-{"role": "tool_result", "content": "..."}
-{"role": "assistant", "content": "auth.py 분석 완료. 구현 시작합니다."}
+{"type":"queue-operation","operation":"enqueue","timestamp":"2026-04-30T14:57:39.246Z"}
+{"type":"user","message":{"role":"user","content":"사용자 인증 모듈 구현해줘"},"sessionId":"s","uuid":"u1"}
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"thinking","thinking":"..."},{"type":"text","text":"먼저 기존 코드 살펴볼게요"}]},"sessionId":"s","uuid":"u2"}
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"t1","name":"Read","input":{"file_path":"auth.py"}}]},"sessionId":"s","uuid":"u3"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":"..."}]},"sessionId":"s","uuid":"u4"}
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"auth.py 분석 완료"}]},"sessionId":"s","uuid":"u5"}
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"테스트 케이스도 함께 추가하겠습니다"}]},"sessionId":"s","uuid":"u6"}
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"구현 시작합니다."}]},"sessionId":"s","uuid":"u7"}
+{"type":"system","subtype":"hook","timestamp":"2026-04-30T14:58:00.000Z"}

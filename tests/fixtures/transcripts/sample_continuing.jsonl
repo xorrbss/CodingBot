@@ -1,2 +1,2 @@
-{"role": "user", "content": "리팩터링 해줘"}
-{"role": "assistant", "content": "auth.py 정리 끝났어요. 이제 db.py 살펴볼게요."}
+{"type":"user","message":{"role":"user","content":"리팩터링 해줘"},"sessionId":"s","uuid":"u1"}
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"auth.py 정리 끝났어요. 이제 db.py 살펴볼게요."}]},"sessionId":"s","uuid":"u2"}

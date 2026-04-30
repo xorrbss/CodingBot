@@ -1,2 +1,2 @@
-{"role": "user", "content": "auth 모듈 구현해줘"}
-{"role": "assistant", "content": "auth.py 구현 완료했습니다. 모든 테스트 통과."}
+{"type":"user","message":{"role":"user","content":"auth 모듈 구현해줘"},"sessionId":"s","uuid":"u1"}
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"auth.py 구현 완료했습니다. 모든 테스트 통과."}]},"sessionId":"s","uuid":"u2"}
