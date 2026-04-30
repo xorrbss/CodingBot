@@ -18,6 +18,7 @@ def _run_hook(input_dict, env_overrides=None):
         capture_output=True,
         text=True,
         env=env,
+        timeout=60,
     )
     return result
 
@@ -41,7 +42,7 @@ def test_risky_tool_skips_auto_approval(tmp_codingbot_home):
     assert r.stdout.strip() == ""
 
 
-def test_unknown_tool_calls_llm(tmp_codingbot_home, mocker):
+def test_unknown_tool_calls_llm(tmp_codingbot_home):
     r = _run_hook(
         {"tool_name": "Edit", "tool_input": {"file_path": "x"}, "transcript_path": ""},
         env_overrides={
@@ -70,5 +71,6 @@ def test_invalid_json_input_does_not_crash(tmp_codingbot_home):
         capture_output=True,
         text=True,
         env={**os.environ, "CODINGBOT_HOME": str(tmp_codingbot_home)},
+        timeout=60,
     )
     assert r.returncode == 0
