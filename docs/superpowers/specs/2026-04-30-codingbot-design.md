@@ -1,8 +1,9 @@
 # CodingBot — Claude Code 자동화 도구 설계
 
 - 작성일: 2026-04-30
+- 최종 갱신: 2026-04-30 (0.1.0 출시 후 인터페이스 drift 반영)
 - 대상: Claude Code CLI (Mac/Windows/Linux)
-- 상태: 설계 확정, 구현 대기
+- 상태: 0.1.0 로컬 태그 완료. 87/87 tests green
 
 ## 1. 목적
 
@@ -98,7 +99,7 @@ C:\project\CodingBot\
 의사코드:
 
 ```python
-def run(initial_prompt: str):
+def run(initial_prompt: str) -> int:
     acquire_lock()                      # ~/.codingbot/.runner.lock
     clear_stop_signal()                 # ~/.codingbot/.codingbot-stop 있으면 삭제
     handoff.clear()
@@ -135,6 +136,15 @@ def run(initial_prompt: str):
     finally:
         release_lock()
 ```
+
+**반환 종료 코드** (CLI에서 그대로 전파):
+- `0` — 정상 종료 (사용자 SIGINT, 정지 신호, 시간/사이클 한도, final check 완료)
+- `1` — 락 충돌 (다른 codingbot run이 진행 중)
+- `2` — Claude Code 연속 비정상 종료 (재시도 후에도 실패)
+
+**락 처리**: `~/.codingbot/.runner.lock`에 PID 기록. 기존 락이 있어도 해당 PID가 죽었으면 stale로 간주하고 재획득 (Windows는 `OpenProcess`, POSIX는 `os.kill(pid, 0)`).
+
+**SIGINT**: 핸들러로 `interrupted` 플래그만 세팅. 사이클 경계에서 깔끔하게 빠져나감 (자식 Claude 프로세스에는 SIGINT 전달).
 
 `should_stop()`은 다음 중 하나라도 참이면 True:
 - `~/.codingbot/.codingbot-stop` 파일 존재
@@ -199,11 +209,20 @@ stdin: `{"transcript_path": "...", ...}`
 }
 ```
 
-API: `start_cycle()`, `record_cycle()`, `read()`, `write(state)`. 동시 쓰기 보호는 OS 파일 락(`portalocker`) 사용.
+API:
+- `start_cycle()`, `record_cycle()`
+- `record_auto_approve()`, `record_auto_continue()`
+- `read()`, `write(state)`
+- `clear_stop_signal()`, `should_stop()` — 정지 조건 검사는 여기로 모음
+- `_increment(key)` (private) — 카운터 증가용 락 안 read-modify-write 헬퍼. `record_*`는 모두 이걸 경유 (동시 hook 실행 시 카운트 손실 방지).
+
+동시 쓰기 보호는 OS 파일 락(`portalocker`, `state.json.lock`) 사용.
 
 ### 5.5 `config.py`
 
 위치: `~/.codingbot/config.yaml`. 없으면 패키지 내 기본값.
+
+**캐싱**: `load()`은 `@lru_cache(maxsize=1)`. PreToolUse hook 한 프로세스 안에서 3-5번 호출되므로 YAML 재파싱 비용 제거. hook subprocess는 짧으므로 신선도 OK. 테스트는 `tmp_codingbot_home` fixture가 자동으로 `config.load.cache_clear()` 호출.
 
 기본값:
 ```yaml
@@ -235,6 +254,10 @@ API:
 - `last_assistant_text(path) -> str | None`
 - `iter_messages(path) -> Iterator[Message]`
 
+**알려진 이슈 (TODO[BLOCKED], 0.1.0 시점)**:
+- I-5: 현재 구현은 추정 schema 기반. 실제 Claude Code session JSONL 샘플 확보 후 0.1.1에서 정공법 재구성 예정 (CLAUDE.md "가정 금지" 위반 회피).
+- I-4: `last_assistant_text`는 전체 파일 메모리 로딩 — 큰 transcript에서 비효율. I-5와 함께 tail-style 읽기로 전환 예정.
+
 ### 5.7 `heuristics.py`
 
 순수 함수 모음.
@@ -259,6 +282,8 @@ Anthropic SDK 래퍼. 모든 호출은 짧은 시스템 프롬프트 + JSON 응�
 실패 처리: 1회 재시도 후 raise. 호출하는 hook이 try/except로 감싸 exit 0 폴백.
 
 캐싱: 미사용(v1).
+
+**Lazy import**: `import anthropic`은 모듈 top-level이 아니라 `_client()` 내부에서 수행. SDK import 비용(~3s)이 hook hot path에 더해지지 않도록 함 (PreToolUse hook 11/11 ~180s → ~28s, 6배 개선). Mock fixture(`mocker.patch("anthropic.Anthropic", ...)`)는 이름 기반 patch이므로 그대로 작동.
 
 ### 5.9 `handoff.py`
 
@@ -341,7 +366,7 @@ API:
 | LLM API 실패 (PreToolUse) | exit 0, 사용자에게 정상적으로 물어봄 |
 | LLM API 실패 (Stop) | block 안 함, 정상 정지 |
 | Claude 비정상 exit 1회 | 같은 메시지로 1회 재시도 |
-| Claude 비정상 exit 2회 연속 | runner break + 에러 메시지 |
+| Claude 비정상 exit 2회 연속 | runner break + 에러 메시지 + exit code 2 |
 | Hook 자체 예외 | top-level catch, exit 0 |
 | 핸드오프 파일 누락/빈 파일 | "다 했음"으로 처리 |
 | state.json 손상 | 초기화 후 진행, 로그 남김 |
