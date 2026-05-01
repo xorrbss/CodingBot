@@ -1,11 +1,45 @@
 # CodingBot 개발 핸드오프
 
-**작성일**: 2026-05-01 (7th update — 0.1.2 push 완료 + HANDOFF drift 정리)
+**작성일**: 2026-05-01 (8th update — 0.2.0 신뢰성 사이클 ship 로컬)
 **대상**: 다음 작업 세션
 
 ---
 
 ## (a) 지금까지 한 일
+
+### 0.2.0 ship 로컬 (신뢰성 사이클 — A2 위험 패턴 + A3 fallback)
+
+- 베이스: `v0.1.2` (`16e70f1`)
+- 사이클 가치: A — 신뢰성/안전성
+- 범위: bash segment 기반 분류 + 3 카테고리(secret/install/priv) + chain 우회 차단 + llm_judge timeout + runner claude CLI 부재 처리
+- spec: `docs/superpowers/specs/2026-05-01-codingbot-0.2.0-design.md`
+- plan: `docs/superpowers/plans/2026-05-01-codingbot-0.2.0.md`
+- release notes: `docs/release-notes-0.2.0.md`
+- 로컬 태그 `v0.2.0` 생성. **push 미실행 (사용자 승인 게이트)**.
+
+#### 이번 사이클 작업 요약 (Task 1~11)
+
+| Task | 내용 | 커밋 |
+|---|---|---|
+| 1 | `_split_bash_segments` (shlex chain + substitution) + 회귀 10 | `c218fd5` |
+| 2 | `_is_secret_segment` (.env/ssh/aws/env/$KEY) + 회귀 7 | `08a313c` |
+| 3 | `_is_install_segment` (pip/npm/apt/...) + 회귀 7 | `8871619` |
+| 4 | `_is_priv_segment` (sudo/chmod 777/chown root) + 회귀 6 | `b59e9ab` |
+| 5 | config `judge_timeout_secs`, `risky_categories` + 도큐 + 회귀 4 | `400e375` |
+| 6 | `_classify_bash` 통합 + chain bypass + pipe-to-shell + 회귀 11 | `e71980f` |
+| 7 | llm_judge `timeout` 인자 + `from e` 일관화 + 회귀 3 | `97b5f77` |
+| 8 | runner `shutil.which` 검사 + return code 3 + autouse fixture + 회귀 1 | `c432023` |
+| 9 | fallback 회귀 audit (기존 보유 — 추가 없음) | (no commit) |
+| 10 | grand pass: 148 + 1 skipped, LOC 282 max, BLOCKED 0 | (no commit) |
+| 11 | release: pyproject 0.2.0 + release notes + HANDOFF | (이 commit) |
+
+#### 0.1.2 → 0.2.0에 포함된 변경 요약
+
+- heuristics: `_split_bash_segments` + `_is_secret_segment` + `_is_install_segment` + `_is_priv_segment` + `_classify_bash` 통합
+- config: `judge_timeout_secs` + `risky_categories` 신규 필드 (default 호환)
+- llm_judge: `_call`에 `timeout` 인자 + `from e` chaining
+- runner: `claude` CLI 부재 시 return code 3
+- public API breaking change 없음. `classify_tool_call` 동일.
 
 ### 0.1.2 push 완료
 
@@ -49,26 +83,27 @@ c2957db  release: 0.1.1                                              ← v0.1.1 
 
 ### 테스트 현황
 
-- **99 pass + 1 skipped** (이전 87 + 회귀 12건: I-5 schema 5 + I-4 tail-style 7)
+- **148 pass + 1 skipped** (0.1.2 시점 99 → 0.2.0에서 +49: split 10 + secret 7 + install 7 + priv 6 + chain bypass 11 + config 4 + llm_judge 3 + runner 1)
 - e2e는 여전히 manual trigger only (`-m e2e`)
 - `// TODO`, `# TODO` grep 시 코드 BLOCKED **0건**
+- 모든 코드 파일 ≤ 500 LOC (max `heuristics.py` 282)
 
 ---
 
 ## (b) 다음에 할 일
 
-0.1.2 push까지 완료되어 release 게이트는 모두 닫혔다. 이후 후보(우선순위 낮음):
+0.2.0 로컬 ship 완료. 다음 게이트는 사용자 승인 push.
 
-### 0.1.x 추가 polish 후보
+### 즉시 후보
 
-- 현재 알려진 BLOCKED 0건.
-- e2e 수동 검증 (실제 Claude Code run에서 hook 동작 확인 — 비용 발생).
-- HANDOFF의 "지금까지 한 일" 항목이 누적되고 있어 0.2.0 시점에 archive 정리 검토.
+- **0.2.0 push** (사용자 승인 게이트). `docs/push-procedure.md` 절차 참고.
+- e2e 수동 검증 (실제 Claude Code run에서 신규 카테고리 동작 확인 — 비용 발생).
 
-### 0.2.0 brainstorm
+### 0.3.0 brainstorm 후보 (push 이후)
 
-- 0.1.x 사이클 마무리 단계. 다음 사이클 방향 brainstorm 시점.
-- 기준: 모듈 의존 그래프 / spec §5.6까지의 인터페이스를 깨지 않는 확장.
+- D 가치(배포/패키징): pip install codingbot, GitHub Releases 자동화 등
+- B 가치(확장성): user-defined matcher plugin, hook 설정 GUI 등
+- 기존 BLOCKED 0건 — 우선순위 정하기 시점.
 
 ---
 
@@ -90,12 +125,13 @@ c2957db  release: 0.1.1                                              ← v0.1.1 
 
 ### 0.1.0 이후 누적된 인터페이스 변경 (spec에 반영됨)
 
-- `runner.run(prompt) -> int` (0=정상, 1=락 충돌, 2=Claude 연속 비정상)
+- `runner.run(prompt) -> int` (0=정상, 1=락 충돌, 2=Claude 연속 비정상, **3=환경 오류 — 0.2.0 신규**)
 - `state._increment(key)` 신규 (private). `record_*`는 모두 이걸 경유
 - `config.load`에 `@lru_cache(maxsize=1)`. 테스트는 `tmp_codingbot_home` fixture가 자동 `cache_clear()`
 - `auto_approve._defer_to_user` (이전 `_skip`)
-- `llm_judge.py`에서 `import anthropic`은 `_client()` 안 lazy
-- (0.1.2) `transcript` 모듈 위 항목
+- `llm_judge.py`에서 `import anthropic`은 `_client()` 안 lazy. **0.2.0**: `messages.create(timeout=cfg.judge_timeout_secs)` + `JudgeError` `from e` 일관화
+- (0.1.2) `transcript` 모듈 schema 정공법
+- **0.2.0**: `heuristics.classify_tool_call` 외부 동일, 내부는 segment 기반. `Config`에 `judge_timeout_secs:int=15` + `risky_categories:dict={secret,install,priv:True}` 신규
 
 ### 모듈 의존 그래프 (변경 없음)
 
@@ -114,7 +150,7 @@ install_hooks   (leaf)
 hooks/auto_approve         → heuristics, llm_judge, logger, state, transcript
 hooks/handoff_or_continue  → handoff, heuristics, llm_judge, logger, state, transcript
 ```
-모든 파일 ≤ 145 LOC (transcript.py 143)
+모든 파일 ≤ 500 LOC. 0.2.0에서 `heuristics.py` 103 → 282 (3 카테고리 매처 + segment 분해 추가).
 
 ### 테스트 격리 패턴 (변경 없음)
 
@@ -124,9 +160,11 @@ hooks/handoff_or_continue  → handoff, heuristics, llm_judge, logger, state, tr
 
 ### 참고 위치
 
-- spec: `docs/superpowers/specs/2026-04-30-codingbot-design.md` (§5.6 0.1.2 drift 반영됨)
-- plan: `docs/superpowers/plans/2026-04-30-codingbot.md` (구현 체크리스트 — historical artifact, 갱신 안 함)
-- release notes: `docs/release-notes-0.1.1.md`, `docs/release-notes-0.1.2.md`
+- spec (0.1.x): `docs/superpowers/specs/2026-04-30-codingbot-design.md`
+- spec (0.2.0): `docs/superpowers/specs/2026-05-01-codingbot-0.2.0-design.md`
+- plan (0.1.x): `docs/superpowers/plans/2026-04-30-codingbot.md` (historical)
+- plan (0.2.0): `docs/superpowers/plans/2026-05-01-codingbot-0.2.0.md`
+- release notes: `docs/release-notes-0.1.1.md`, `docs/release-notes-0.1.2.md`, `docs/release-notes-0.2.0.md`
 - push procedure: `docs/push-procedure.md`
 
 ---
@@ -135,9 +173,10 @@ hooks/handoff_or_continue  → handoff, heuristics, llm_judge, logger, state, tr
 
 다음 세션 시작 시:
 
-> "CodingBot **0.1.2 ship 완료** (transcript I-4/I-5 정공법, origin/master = HEAD, `v0.1.2` push됨).
-> 99/99 green, BLOCKED 0건. 0.1.x polish 더 갈까, 0.2.0 brainstorm 갈까, 아니면 다른 작업?"
+> "CodingBot **0.2.0 로컬 ship 완료** (신뢰성 사이클 — bash segment 분류, llm_judge timeout, runner CLI 검사. `v0.2.0` 로컬 태그까지).
+> 148/148 green, BLOCKED 0건, 모든 파일 ≤ 500 LOC. 다음은 0.2.0 push (사용자 승인 게이트)? 아니면 0.3.0 brainstorm?"
 
 선택지:
-- 0.1.x polish → e2e 수동 검증 또는 HANDOFF archive 정리
-- 0.2.0 brainstorm → spec/모듈 그래프 위에서 확장 후보 정리
+- **0.2.0 push** → 사용자 승인 후 `docs/push-procedure.md` 절차
+- e2e 수동 검증 → 신규 카테고리 동작 실제 Claude Code run에서 확인
+- 0.3.0 brainstorm → D(배포), B(확장성), 기타 가치 후보 정리
