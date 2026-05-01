@@ -198,6 +198,49 @@ _CONTINUING_PATTERNS = [
 ]
 
 
+def _seg_is_safe_prefix(argv) -> bool:
+    seg_str = " ".join(argv)
+    return any(
+        seg_str == p.rstrip() or seg_str.startswith(p)
+        for p in _SAFE_BASH_PREFIXES
+    )
+
+
+def _classify_bash(cmd: str, cfg) -> str:
+    segments = _split_bash_segments(cmd)
+    if not segments:
+        return "unknown"
+
+    cats = cfg.risky_categories or {}
+
+    if cats.get("secret", True) and any(_is_secret_segment(a) for a in segments):
+        return "risky"
+    if cats.get("install", True):
+        if any(_is_install_segment(a) for a in segments):
+            return "risky"
+        # curl|sh 류 — 다단계 chain의 후반부에 단독 shell interpreter
+        if len(segments) >= 2 and any(
+            seg in (["sh"], ["bash"], ["zsh"]) for seg in segments[1:]
+        ):
+            return "risky"
+    if cats.get("priv", True) and any(_is_priv_segment(a) for a in segments):
+        return "risky"
+
+    for argv in segments:
+        # legacy pattern은 unquoted token에 한정 — quoted("rm -rf" 류) 안의 위험
+        # 문자열은 실행되지 않으므로 false positive 방지.
+        safe_tokens = [t for t in argv if " " not in t]
+        seg_str = " ".join(safe_tokens)
+        for p in cfg.risky_patterns:
+            if p in seg_str:
+                return "risky"
+
+    if all(_seg_is_safe_prefix(a) for a in segments):
+        return "safe"
+
+    return "unknown"
+
+
 def classify_tool_call(tool_name: str, tool_input: Dict[str, Any]) -> str:
     """returns 'safe' | 'risky' | 'unknown'."""
     cfg = config.load()
@@ -207,15 +250,7 @@ def classify_tool_call(tool_name: str, tool_input: Dict[str, Any]) -> str:
 
     if tool_name == "Bash":
         cmd = str(tool_input.get("command", ""))
-
-        for pattern in cfg.risky_patterns:
-            if pattern in cmd:
-                return "risky"
-
-        if any(cmd == p.rstrip() or cmd.startswith(p) for p in _SAFE_BASH_PREFIXES):
-            return "safe"
-
-        return "unknown"
+        return _classify_bash(cmd, cfg)
 
     flat_input = " ".join(str(v) for v in tool_input.values())
     for pattern in cfg.risky_patterns:
