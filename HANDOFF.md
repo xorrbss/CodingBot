@@ -1,6 +1,6 @@
 # CodingBot 개발 핸드오프
 
-**작성일**: 2026-05-01 (13th update — 0.5.0 ship)
+**작성일**: 2026-05-01 (13th update — 0.5.0 ship + push 완료)
 **대상**: 다음 작업 세션
 
 ---
@@ -15,6 +15,8 @@
 - spec: `docs/superpowers/specs/2026-05-01-codingbot-0.5.0-design.md`
 - plan: `docs/superpowers/plans/2026-05-01-codingbot-0.5.0.md`
 - release notes: `docs/release-notes-0.5.0.md`
+- origin/master = local master = `24f6cd1` (release commit) — push 완료
+- 태그 `v0.5.0` (annotated, commit `24f6cd1`) origin 등록됨
 
 #### 이번 사이클 작업 요약 (Task 1~10)
 
@@ -200,7 +202,7 @@ c2957db  release: 0.1.1                                              ← v0.1.1 
 
 ## (b) 다음에 할 일
 
-0.5.0 ship 완료 (push는 별도 게이트). 다음 후보:
+0.5.0 ship + push 완료. release 게이트 모두 닫힘. 다음 후보(우선순위 낮음):
 
 ### 0.5.x polish 후보
 
