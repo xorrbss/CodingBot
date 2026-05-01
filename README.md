@@ -21,6 +21,8 @@ codingbot stop
 
 # 진행 상황
 codingbot status
+codingbot status --watch              # 한 화면에서 라이브 (Ctrl-C로 종료)
+codingbot status --watch --interval 2 --tail 20
 codingbot tail-log -n 50
 
 # 설정 확인
