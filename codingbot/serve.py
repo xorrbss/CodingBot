@@ -5,7 +5,11 @@
 """
 import json
 import re
+import sys
+import threading
+import webbrowser
 from datetime import datetime, timedelta, timezone
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from importlib.resources import files
 from typing import List, Optional, Tuple
 from urllib.parse import urlparse, parse_qs
@@ -186,3 +190,55 @@ def _route(method: str, path: str) -> Tuple[int, str, bytes]:
         return 200, "application/json", _payload_timeline(window)
 
     return 404, "text/plain; charset=utf-8", b"not found"
+
+
+class _Handler(BaseHTTPRequestHandler):
+    """라우팅은 순수 함수 _route에 위임. 이 클래스는 응답 write만 한다."""
+
+    def _respond(self, status: int, content_type: str, body: bytes) -> None:
+        self.send_response(status)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-cache")
+        self.end_headers()
+        self.wfile.write(body)
+
+    def do_GET(self) -> None:  # noqa: N802
+        status, ctype, body = _route("GET", self.path)
+        self._respond(status, ctype, body)
+
+    def do_POST(self) -> None:  # noqa: N802
+        status, ctype, body = _route("POST", self.path)
+        self._respond(status, ctype, body)
+
+    def log_message(self, format, *args) -> None:  # noqa: A002
+        # default는 stderr에 access log를 찍음. 운영자 콘솔이 시끄러워져 끔.
+        return
+
+
+def _open_browser(host: str, port: int) -> None:
+    try:
+        webbrowser.open(f"http://{host}:{port}/")
+    except Exception:
+        pass
+
+
+def run_serve(host: str, port: int, open_browser: bool) -> int:
+    """블로킹 모드로 서버 시작. Ctrl-C → 0. port 충돌 → 1."""
+    try:
+        server = ThreadingHTTPServer((host, port), _Handler)
+    except OSError as e:
+        print(f"[codingbot] cannot bind {host}:{port} — {e}", file=sys.stderr)
+        return 1
+
+    if open_browser:
+        threading.Thread(target=_open_browser, args=(host, port), daemon=True).start()
+
+    print(f"[codingbot] serving on http://{host}:{port}  (Ctrl-C to stop)")
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        server.server_close()
+    return 0
