@@ -106,6 +106,7 @@ def test_hook_env_includes_codingbot_home(hook_env, tmp_codingbot_home):
 
 
 def test_hook_env_overrides_apply(hook_env):
+    """hook_env(**overrides)가 기본값 위에 caller 지정 값을 덮어쓴다 (FAULT_INJECT pop 이후 적용)."""
     env = hook_env(CODINGBOT_FAULT_INJECT="judge_timeout", FOO="bar")
     assert env["CODINGBOT_FAULT_INJECT"] == "judge_timeout"
     assert env["FOO"] == "bar"

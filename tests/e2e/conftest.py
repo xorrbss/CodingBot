@@ -1,5 +1,6 @@
 """tests/e2e/ 전용 fixture — codingbot.runner.subprocess.run 라우팅 + 시나리오 factory."""
 import json
+import os
 import subprocess as _stdlib_subprocess
 import sys
 from pathlib import Path
@@ -92,15 +93,13 @@ def hook_env(tmp_codingbot_home):
     """hook subprocess용 env 빌더.
 
     기본: os.environ 사본 + CODINGBOT_HOME=tmp_codingbot_home + ANTHROPIC_API_KEY 더미.
-    overrides는 추가/덮어쓰기.
+    `CODINGBOT_FAULT_INJECT`는 부모 환경에서 누설되지 않도록 기본 pop된 뒤
+    overrides가 적용되므로, 호출 측이 명시한 값만 hook subprocess에 도달한다.
     """
-    import os as _os
-
     def _build(**overrides) -> dict:
-        env = _os.environ.copy()
+        env = os.environ.copy()
         env["CODINGBOT_HOME"] = str(tmp_codingbot_home)
         env.setdefault("ANTHROPIC_API_KEY", "fake-key-for-tests")
-        # fault-inject env가 누설되어 다음 테스트에 영향 가지 않도록 기본은 제거
         env.pop("CODINGBOT_FAULT_INJECT", None)
         env.update({k: str(v) for k, v in overrides.items()})
         return env
