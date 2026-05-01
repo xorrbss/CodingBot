@@ -109,3 +109,40 @@ def test_non_timeout_exception_raises_judge_error_not_timeout(tmp_codingbot_home
     with pytest.raises(llm_judge.JudgeError) as exc_info:
         llm_judge.evaluate_tool_safety("Bash", {"command": "x"}, "")
     assert not isinstance(exc_info.value, llm_judge.JudgeTimeout)
+
+
+def test_call_fault_inject_timeout(monkeypatch):
+    """CODINGBOT_FAULT_INJECT=judge_timeout이면 _call이 즉시 JudgeTimeout raise."""
+    from codingbot import llm_judge
+    monkeypatch.setenv("CODINGBOT_FAULT_INJECT", "judge_timeout")
+    with pytest.raises(llm_judge.JudgeTimeout) as exc:
+        llm_judge._call("system", "user")
+    assert "fault inject" in str(exc.value)
+
+
+def test_call_fault_inject_error(monkeypatch):
+    """CODINGBOT_FAULT_INJECT=judge_error이면 _call이 즉시 JudgeError raise."""
+    from codingbot import llm_judge
+    monkeypatch.setenv("CODINGBOT_FAULT_INJECT", "judge_error")
+    with pytest.raises(llm_judge.JudgeError) as exc:
+        llm_judge._call("system", "user")
+    # JudgeTimeout은 JudgeError 서브클래스 — 위 raises는 둘 다 매치되므로 분리 확인
+    assert not isinstance(exc.value, llm_judge.JudgeTimeout)
+    assert "fault inject" in str(exc.value)
+
+
+def test_call_fault_inject_unknown_value_is_noop(monkeypatch):
+    """알 수 없는 값은 분기 미진입 (정규 경로로 흘러 _client 호출까지 도달)."""
+    from codingbot import llm_judge
+    monkeypatch.setenv("CODINGBOT_FAULT_INJECT", "bogus_value")
+    called = {}
+
+    def fake_client():
+        called["client"] = True
+        raise RuntimeError("stop here — we just need to confirm we reached _client")
+
+    monkeypatch.setattr(llm_judge, "_client", fake_client)
+    # _call wraps all non-APITimeoutError exceptions as JudgeError; RuntimeError is no exception.
+    with pytest.raises(llm_judge.JudgeError):
+        llm_judge._call("system", "user")
+    assert called["client"] is True

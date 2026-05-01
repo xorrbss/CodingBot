@@ -46,6 +46,11 @@ def _client():
 
 
 def _call(system: str, user: str) -> str:
+    fault = os.environ.get("CODINGBOT_FAULT_INJECT")
+    if fault == "judge_timeout":
+        raise JudgeTimeout("fault inject: judge_timeout")
+    if fault == "judge_error":
+        raise JudgeError("fault inject: judge_error")
     cfg = config.load()
     try:
         resp = _client().messages.create(
