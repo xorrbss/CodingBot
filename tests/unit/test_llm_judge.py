@@ -56,3 +56,31 @@ def test_no_api_key_raises(tmp_codingbot_home, monkeypatch):
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     with pytest.raises(llm_judge.JudgeError):
         llm_judge.evaluate_tool_safety("Bash", {"command": "x"}, "")
+
+
+def test_timeout_passed_to_sdk(tmp_codingbot_home, mock_anthropic, monkeypatch):
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "fake")
+    _mock_response(mock_anthropic, '{"decision": "approve", "reason": "ok"}')
+    llm_judge.evaluate_tool_safety("Bash", {"command": "ls"}, "")
+    call_kwargs = mock_anthropic.messages.create.call_args.kwargs
+    assert call_kwargs.get("timeout") == 15
+
+
+def test_timeout_from_config(tmp_codingbot_home, mock_anthropic, monkeypatch):
+    from codingbot import config, paths
+    paths.config_file().write_text("judge_timeout_secs: 5\n", encoding="utf-8")
+    config.load.cache_clear()
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "fake")
+    _mock_response(mock_anthropic, '{"decision": "approve", "reason": "ok"}')
+    llm_judge.evaluate_tool_safety("Bash", {"command": "ls"}, "")
+    call_kwargs = mock_anthropic.messages.create.call_args.kwargs
+    assert call_kwargs.get("timeout") == 5
+
+
+def test_api_error_chains_cause(tmp_codingbot_home, mock_anthropic, monkeypatch):
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "fake")
+    underlying = RuntimeError("network fail")
+    mock_anthropic.messages.create.side_effect = underlying
+    with pytest.raises(llm_judge.JudgeError) as exc_info:
+        llm_judge.evaluate_tool_safety("Bash", {"command": "x"}, "")
+    assert exc_info.value.__cause__ is underlying

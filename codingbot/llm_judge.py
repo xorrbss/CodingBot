@@ -47,15 +47,16 @@ def _call(system: str, user: str) -> str:
         resp = _client().messages.create(
             model=cfg.judge_model,
             max_tokens=300,
+            timeout=cfg.judge_timeout_secs,
             system=system,
             messages=[{"role": "user", "content": user}],
         )
     except Exception as e:
-        raise JudgeError(f"API call failed: {e}")
+        raise JudgeError(f"API call failed: {e}") from e
     try:
         return resp.content[0].text
     except (IndexError, AttributeError) as e:
-        raise JudgeError(f"unexpected response shape: {e}")
+        raise JudgeError(f"unexpected response shape: {e}") from e
 
 
 def _parse_json(text: str) -> Dict[str, Any]:
