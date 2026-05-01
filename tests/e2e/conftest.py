@@ -53,3 +53,56 @@ def e2e_scenario(tmp_path, monkeypatch):
         return scenario_path
 
     return _set
+
+
+@pytest.fixture
+def transcript_jsonl_factory(tmp_path):
+    """dict 리스트를 Claude Code session schema JSONL로 변환해 임시 파일에 쓴다.
+
+    입력 dict: {"role": "user"|"assistant", "text": str}
+    출력 schema (한 줄당 한 entry):
+        user      → {"type":"user",     "message":{"role":"user",     "content":[{"type":"text","text":...}]}}
+        assistant → {"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":...}]}}
+    """
+    counter = {"n": 0}
+
+    def _make(messages: list[dict]) -> Path:
+        counter["n"] += 1
+        path = tmp_path / f"transcript_{counter['n']}.jsonl"
+        with path.open("w", encoding="utf-8") as f:
+            for m in messages:
+                role = m["role"]
+                if role not in ("user", "assistant"):
+                    raise ValueError(f"invalid role: {role!r}")
+                entry = {
+                    "type": role,
+                    "message": {
+                        "role": role,
+                        "content": [{"type": "text", "text": m["text"]}],
+                    },
+                }
+                f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+        return path
+
+    return _make
+
+
+@pytest.fixture
+def hook_env(tmp_codingbot_home):
+    """hook subprocess용 env 빌더.
+
+    기본: os.environ 사본 + CODINGBOT_HOME=tmp_codingbot_home + ANTHROPIC_API_KEY 더미.
+    overrides는 추가/덮어쓰기.
+    """
+    import os as _os
+
+    def _build(**overrides) -> dict:
+        env = _os.environ.copy()
+        env["CODINGBOT_HOME"] = str(tmp_codingbot_home)
+        env.setdefault("ANTHROPIC_API_KEY", "fake-key-for-tests")
+        # fault-inject env가 누설되어 다음 테스트에 영향 가지 않도록 기본은 제거
+        env.pop("CODINGBOT_FAULT_INJECT", None)
+        env.update({k: str(v) for k, v in overrides.items()})
+        return env
+
+    return _build

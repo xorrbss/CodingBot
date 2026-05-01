@@ -82,3 +82,30 @@ def test_fake_claude_missing_env_exits_90(tmp_path):
     r = _run_fake(scenario_path=None, home=home)
     assert r.returncode == 90
     assert "codingbot_e2e_scenario" in r.stderr.lower()
+
+
+def test_transcript_jsonl_factory_emits_session_schema(transcript_jsonl_factory):
+    """factory가 Claude Code session schema로 emit한다 — iter_messages가 읽을 수 있어야 함."""
+    from codingbot import transcript
+
+    path = transcript_jsonl_factory([
+        {"role": "user", "text": "hello"},
+        {"role": "assistant", "text": "hi there"},
+    ])
+    msgs = list(transcript.iter_messages(path))
+    assert msgs == [
+        {"role": "user", "content": "hello"},
+        {"role": "assistant", "content": "hi there"},
+    ]
+
+
+def test_hook_env_includes_codingbot_home(hook_env, tmp_codingbot_home):
+    """hook_env가 CODINGBOT_HOME을 tmp_codingbot_home과 일치시킨다."""
+    env = hook_env()
+    assert env["CODINGBOT_HOME"] == str(tmp_codingbot_home)
+
+
+def test_hook_env_overrides_apply(hook_env):
+    env = hook_env(CODINGBOT_FAULT_INJECT="judge_timeout", FOO="bar")
+    assert env["CODINGBOT_FAULT_INJECT"] == "judge_timeout"
+    assert env["FOO"] == "bar"
