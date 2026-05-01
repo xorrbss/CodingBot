@@ -1,13 +1,13 @@
 # CodingBot 개발 핸드오프
 
-**작성일**: 2026-05-01 (8th update — 0.2.0 신뢰성 사이클 ship 로컬)
+**작성일**: 2026-05-01 (9th update — 0.2.0 push 완료)
 **대상**: 다음 작업 세션
 
 ---
 
 ## (a) 지금까지 한 일
 
-### 0.2.0 ship 로컬 (신뢰성 사이클 — A2 위험 패턴 + A3 fallback)
+### 0.2.0 push 완료 (신뢰성 사이클 — A2 위험 패턴 + A3 fallback)
 
 - 베이스: `v0.1.2` (`16e70f1`)
 - 사이클 가치: A — 신뢰성/안전성
@@ -15,7 +15,8 @@
 - spec: `docs/superpowers/specs/2026-05-01-codingbot-0.2.0-design.md`
 - plan: `docs/superpowers/plans/2026-05-01-codingbot-0.2.0.md`
 - release notes: `docs/release-notes-0.2.0.md`
-- 로컬 태그 `v0.2.0` 생성. **push 미실행 (사용자 승인 게이트)**.
+- origin/master = local master = `3434973` 직후 본 정리 commit
+- 태그 `v0.2.0` (annotated, commit `3434973`) origin 등록됨
 
 #### 이번 사이클 작업 요약 (Task 1~11)
 
@@ -92,14 +93,14 @@ c2957db  release: 0.1.1                                              ← v0.1.1 
 
 ## (b) 다음에 할 일
 
-0.2.0 로컬 ship 완료. 다음 게이트는 사용자 승인 push.
+0.2.0 push까지 완료. release 게이트 모두 닫힘. 다음 후보(우선순위 낮음):
 
-### 즉시 후보
+### 0.2.x 추가 polish 후보
 
-- **0.2.0 push** (사용자 승인 게이트). `docs/push-procedure.md` 절차 참고.
 - e2e 수동 검증 (실제 Claude Code run에서 신규 카테고리 동작 확인 — 비용 발생).
+- HANDOFF의 "지금까지 한 일" 항목이 누적되고 있어 다음 사이클에서 archive 정리 검토.
 
-### 0.3.0 brainstorm 후보 (push 이후)
+### 0.3.0 brainstorm 후보
 
 - D 가치(배포/패키징): pip install codingbot, GitHub Releases 자동화 등
 - B 가치(확장성): user-defined matcher plugin, hook 설정 GUI 등
@@ -173,10 +174,9 @@ hooks/handoff_or_continue  → handoff, heuristics, llm_judge, logger, state, tr
 
 다음 세션 시작 시:
 
-> "CodingBot **0.2.0 로컬 ship 완료** (신뢰성 사이클 — bash segment 분류, llm_judge timeout, runner CLI 검사. `v0.2.0` 로컬 태그까지).
-> 148/148 green, BLOCKED 0건, 모든 파일 ≤ 500 LOC. 다음은 0.2.0 push (사용자 승인 게이트)? 아니면 0.3.0 brainstorm?"
+> "CodingBot **0.2.0 ship + push 완료** (신뢰성 사이클 — bash segment 분류, llm_judge timeout, runner CLI 검사. origin/master = HEAD, `v0.2.0` push됨).
+> 148/148 green, BLOCKED 0건, 모든 파일 ≤ 500 LOC. 0.2.x polish 더 갈까, 0.3.0 brainstorm 갈까, 아니면 다른 작업?"
 
 선택지:
-- **0.2.0 push** → 사용자 승인 후 `docs/push-procedure.md` 절차
-- e2e 수동 검증 → 신규 카테고리 동작 실제 Claude Code run에서 확인
+- 0.2.x polish → e2e 수동 검증 또는 HANDOFF archive 정리
 - 0.3.0 brainstorm → D(배포), B(확장성), 기타 가치 후보 정리
