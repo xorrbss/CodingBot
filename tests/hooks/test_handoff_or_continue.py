@@ -1,8 +1,11 @@
+import io
 import json
 import os
 import subprocess
 import sys
 from pathlib import Path
+
+from codingbot import state
 
 
 FIXTURE_DIR = Path(__file__).parent.parent / "fixtures" / "transcripts"
@@ -95,8 +98,6 @@ def test_invalid_input_does_not_crash(tmp_codingbot_home):
 
 # --- 0.3.0 카운터 회귀 ---
 
-from codingbot import state
-
 
 def _read_state(home):
     sf = home / "state.json"
@@ -156,7 +157,6 @@ def test_counter_handoff_already_written_increments_allow(tmp_codingbot_home):
 
 def test_counter_llm_timeout_increments_timeout_and_allow(tmp_codingbot_home, tmp_path, mocker):
     """ambiguous transcript → llm_judge timeout → stop_allow + judge_timeout_total."""
-    import io, sys
     import anthropic
 
     state.start_cycle()
@@ -193,3 +193,38 @@ def test_counter_llm_timeout_increments_timeout_and_allow(tmp_codingbot_home, tm
     assert s["judge_timeout_total"] == 1
     assert s["judge_error_total"] == 0
     assert s["stop_allow"] == 1
+
+
+def test_counter_unstuck_increments_block_unstuck(tmp_codingbot_home, tmp_path, mocker):
+    """ambiguous transcript → llm_judge classify=blocked_unsure → stop_block_unstuck +1."""
+    state.start_cycle()
+    ambiguous = tmp_path / "ambiguous.jsonl"
+    ambiguous.write_text(
+        '{"type":"assistant","message":{"content":[{"type":"text","text":"음... 잠시만요"}]}}\n',
+        encoding="utf-8",
+    )
+    mocker.patch.dict(os.environ, {
+        "CODINGBOT_HOME": str(tmp_codingbot_home),
+        "ANTHROPIC_API_KEY": "fake",
+    })
+    mock_client = mocker.MagicMock()
+    msg = type("Msg", (), {"text": '{"category": "blocked_unsure", "reason": "stuck"}'})()
+    mock_client.messages.create.return_value = type("R", (), {"content": [msg]})()
+    mocker.patch("anthropic.Anthropic", return_value=mock_client)
+
+    from codingbot import config
+    config.load.cache_clear()
+
+    from codingbot.hooks import handoff_or_continue as hc
+    payload = json.dumps({"transcript_path": str(ambiguous)})
+    mocker.patch.object(sys, "stdin", io.StringIO(payload))
+    mocker.patch.object(sys, "stdout", io.StringIO())
+    rc = hc.main()
+    assert rc == 0
+
+    s = _read_state(tmp_codingbot_home)
+    assert s["judge_call_total"] == 1
+    assert s["stop_block_unstuck"] == 1
+    assert s["stop_block_continue"] == 0
+    assert s["stop_block_handoff"] == 0
+    assert s["stop_allow"] == 0
