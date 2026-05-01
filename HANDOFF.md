@@ -1,11 +1,42 @@
 # CodingBot 개발 핸드오프
 
-**작성일**: 2026-05-02 (16th update — 0.7.0 ship + push 완료 — `codingbot serve` W 사이클)
+**작성일**: 2026-05-02 (17th update — 0.8.0 ship 완료 — risky_tool 차단 hook 통합 e2e (A 사이클))
 **대상**: 다음 작업 세션
 
 ---
 
 ## (a) 지금까지 한 일
+
+### 0.8.0 ship 완료 (A 사이클 — risky_tool 차단 hook 통합 e2e)
+
+- 베이스: `v0.7.0` (`5119024`)
+- 사이클 가치: **A — 신뢰성 검증 자동화** (0.5.0 hook 통합 트랙 확장)
+- 범위: 0.2.0 secret/install/priv 분류 + chain bypass 차단의 hook 통합 경로 e2e_auto 5건(S9~S13). 운영 코드 변경 **0** (`git diff v0.7.0..HEAD -- codingbot/` 빈 diff).
+- spec: `docs/superpowers/specs/2026-05-02-codingbot-0.8.0-design.md`
+- plan: `docs/superpowers/plans/2026-05-02-codingbot-0.8.0.md`
+- release notes: `docs/release-notes-0.8.0.md`
+- local master = `<this commit>`, `v0.8.0` annotated tag (push 미실행 — 사용자 명시 승인 후)
+- 변경 파일:
+  - `tests/e2e/test_hook_integration.py`: S9~S13 5 함수 append (105 → 226 LOC).
+  - `pyproject.toml`: 0.7.0 → 0.8.0.
+  - `docs/release-notes-0.8.0.md` (신규).
+  - `HANDOFF.md` (17th update).
+- 변경 영향: 외부 인터페이스 / state schema / 의존 그래프 / 운영 코드 모두 무변경.
+- 테스트: 231 pass + 1 skipped (0.7.0 226 → +5 e2e_auto risky_tool defer/approve 회귀).
+- e2e_auto: 20 → 25 (~37s).
+- BLOCKED 0, LOC max 338(`tests/unit/test_heuristics.py`) 유지.
+
+#### 이번 사이클 작업 요약 (Task 1~7)
+
+| Task | 내용 | 커밋 |
+|---|---|---|
+| 1 | S9 secret_segment_blocked (`cat .env`) | `42ea48e` |
+| 2 | S10 install_segment_blocked (`pip install requests`) | `645c84d` |
+| 3 | S11 priv_segment_blocked (`sudo rm /tmp/x`) | `0cec4a8` |
+| 4 | S12 chain_bypass_still_blocked (`echo ok && cat .env`) | `eb5d3e6` |
+| 5 | S13 safe_bash_still_approves (대조 — `ls`) | `b22638d` |
+| 6 | grand pass: 231 + 1 skipped, e2e_auto 25, BLOCKED 0, 운영 diff 0 | (no commit) |
+| 7 | release: pyproject 0.8.0 + notes + HANDOFF + tag | (이 commit) |
 
 ### 0.7.0 ship 완료 (W 사이클 — `codingbot serve`)
 
@@ -248,20 +279,20 @@ c2957db  release: 0.1.1                                              ← v0.1.1 
 
 ## (b) 다음에 할 일
 
-0.6.0 ship + push 완료. release 게이트 모두 닫힘. 다음 후보:
+0.8.0 ship 완료 (push 미실행 — 사용자 명시 승인 후). release 게이트 모두 닫힘. 다음 후보:
 
-### 0.6.x polish 후보 (남은 것)
+### 0.7.x/0.8.x polish 후보 (잔여)
 
-- (a) e2e 수동 검증 (실제 Claude Code run + watch 화면 직접 확인).
-- (b) watch 헤더에 lock pid 표시 (현재 비범위).
-- ~~(c) README의 status 섹션에 --watch 안내 추가~~ → commit `183f241`에서 완료.
+- (a) 0.7.0 e2e 수동 검증 (실제 Claude Code run + 브라우저 dashboard 직접 확인) — 0.7.x polish (a) 별도로 sandbox 합성 데이터 검증은 완료, 실 데이터 검증은 미실시.
+- (b) watch 헤더에 lock pid 표시.
+- (c) S9~S13 비대칭 정리: hook 통합 e2e 모두에 `tmp_codingbot_home` 명시 파라미터 추가(현재 `hook_env` 의존성 통해 transitive). 패턴 일관성 polish, 동작 영향 0.
+- (d) README "안전성" 섹션에 chain bypass 사례(`echo ok && cat .env`) 추가.
 
-### 0.8.0 brainstorm 후보 (사이클 가치 결정 → spec → plan)
+### 0.9.0 brainstorm 후보 (사이클 가치 결정 → spec → plan)
 
-- risky_tool 차단 e2e (secret/install/priv hook 트랙).
-- judge 캐싱 (0.3.0 측정 데이터로 ROI 평가 후 결정).
-- abnormal exit state 카운터 + S9 시나리오.
-- D 가치(배포/패키징): pip install codingbot, GitHub Releases 자동화 등.
+- abnormal exit state 카운터 + S14 시나리오 (0.3.0 카운터 + 0.5.0 e2e 트랙 동시 확장, A/C).
+- judge 캐싱 (0.7.0 serve로 누적된 실측 데이터 확인 후 ROI 재평가, B2).
+- D 가치(배포/패키징): pip install codingbot, GitHub Releases 자동화.
 
 ---
 
@@ -338,7 +369,11 @@ hooks/handoff_or_continue  → handoff, heuristics, llm_judge, logger, state, tr
 - plan (0.4.0): `docs/superpowers/plans/2026-05-01-codingbot-0.4.0.md`
 - plan (0.5.0): `docs/superpowers/plans/2026-05-01-codingbot-0.5.0.md`
 - plan (0.6.0): `docs/superpowers/plans/2026-05-01-codingbot-0.6.0.md`
-- release notes: `docs/release-notes-0.1.1.md`, `docs/release-notes-0.1.2.md`, `docs/release-notes-0.2.0.md`, `docs/release-notes-0.3.0.md`, `docs/release-notes-0.4.0.md`, `docs/release-notes-0.5.0.md`, `docs/release-notes-0.6.0.md`
+- spec (0.7.0): `docs/superpowers/specs/2026-05-01-codingbot-0.7.0-design.md`
+- plan (0.7.0): `docs/superpowers/plans/2026-05-01-codingbot-0.7.0.md`
+- spec (0.8.0): `docs/superpowers/specs/2026-05-02-codingbot-0.8.0-design.md`
+- plan (0.8.0): `docs/superpowers/plans/2026-05-02-codingbot-0.8.0.md`
+- release notes: `docs/release-notes-0.1.1.md`, `docs/release-notes-0.1.2.md`, `docs/release-notes-0.2.0.md`, `docs/release-notes-0.3.0.md`, `docs/release-notes-0.4.0.md`, `docs/release-notes-0.5.0.md`, `docs/release-notes-0.6.0.md`, `docs/release-notes-0.7.0.md`, `docs/release-notes-0.8.0.md`
 - push procedure: `docs/push-procedure.md`
 
 ---
@@ -347,14 +382,16 @@ hooks/handoff_or_continue  → handoff, heuristics, llm_judge, logger, state, tr
 
 다음 세션 시작 시:
 
-> "CodingBot **0.7.0 ship + push 완료** (W 사이클 — `codingbot serve`, stdlib http.server + vanilla HTML/JS/SVG, 신규 의존 0개). origin/master = `b3563d7` (Task 8 done), `v0.7.0` push됨.
-> 226 pass + 1 skipped, BLOCKED 0건, 모든 파일 ≤ 500 LOC (serve.py 244, index.html 176).
-> HANDOFF (a)/(b), 0.7.0 release notes 모두 정합.
+> "CodingBot **0.8.0 ship 완료** (A 사이클 — risky_tool 차단 hook 통합 e2e, S9~S13). 운영 코드 변경 0. 로컬 master = release commit, `v0.8.0` annotated tag — **push 미실행** (사용자 승인 후).
+> 231 pass + 1 skipped, BLOCKED 0건, e2e_auto 25(~37s), LOC max 338(`tests/unit/test_heuristics.py`) 유지.
+> HANDOFF (a)/(b), 0.8.0 release notes 모두 정합.
 >
 > 다음 후보 — 골라줘:
-> - 0.7.x polish: (a) e2e 수동 검증 (브라우저에서 직접 확인), (b) watch 헤더에 lock pid 표시
-> - 0.8.0 사이클 brainstorm: (d) risky_tool 차단 e2e [A], (e) judge 캐싱 [B2], (f) abnormal exit 카운터 [A/C], (g) 배포 패키징 [D]"
+> - 0.8.0 push: 사용자 승인 → `git push origin master --follow-tags`
+> - 0.7.x/0.8.x polish: (a) 0.7.0 실 데이터 e2e 수동 검증, (b) watch 헤더 lock pid, (c) S9~S13 `tmp_codingbot_home` 명시화, (d) README 안전성 섹션 chain bypass 사례 추가
+> - 0.9.0 brainstorm: (e) abnormal exit + S14 [A/C], (f) judge 캐싱 [B2], (g) 배포 패키징 [D]"
 
 선택지 요약:
-- 0.7.x polish → 작은 단위 (a/b), 한 세션 안에서 마무리.
-- 0.8.0 brainstorm → 사이클 가치(A/B/C/D) 결정 + spec + plan + 다중 task. 한 세션 이상 가능.
+- 0.8.0 push → 1 명령, 즉시.
+- polish → 작은 단위 (a~d), 한 세션 안에서 마무리.
+- 0.9.0 brainstorm → 사이클 가치 결정 + spec + plan + 다중 task. 한 세션 이상 가능.

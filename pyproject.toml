@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "codingbot"
-version = "0.7.0"
+version = "0.8.0"
 description = "Claude Code 자동 승인 + 자동 진행 도구"
 requires-python = ">=3.11"
 dependencies = [
