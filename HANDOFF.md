@@ -1,11 +1,46 @@
 # CodingBot 개발 핸드오프
 
-**작성일**: 2026-05-01 (12th update — 0.4.0 ship + push 완료)
+**작성일**: 2026-05-01 (13th update — 0.5.0 ship)
 **대상**: 다음 작업 세션
 
 ---
 
 ## (a) 지금까지 한 일
+
+### 0.5.0 ship 완료 (hook 통합 e2e 사이클 — fault-inject + S4 + S5/S6/S7/S8)
+
+- 베이스: `v0.4.0` (`5c5d961`)
+- 사이클 가치: C2 — 검증 자동화 (hook 분기까지 확장)
+- 범위: `llm_judge._call` fault-inject 4라인 + hook_harness 신규 + transcript factory + 5 시나리오 (S4 runner + S5~S8 hook)
+- spec: `docs/superpowers/specs/2026-05-01-codingbot-0.5.0-design.md`
+- plan: `docs/superpowers/plans/2026-05-01-codingbot-0.5.0.md`
+- release notes: `docs/release-notes-0.5.0.md`
+
+#### 이번 사이클 작업 요약 (Task 1~10)
+
+| Task | 내용 | 커밋 |
+|---|---|---|
+| 1 | llm_judge fault-inject + 단위 회귀 3 | `6452b63` |
+| 2 | transcript_jsonl_factory + hook_env fixture | `1b29ae2` / `eec93be` |
+| 3 | hook_harness + 자체 단위 5 | `f7e4137` |
+| 4 | S4 abnormal_repeat | `0dd285d` |
+| 5 | S5 stop signal Stop hook | `158afae` |
+| 6 | S6 judge timeout PreTool | `3b0b478` |
+| 7 | S7 judge timeout Stop | `dcfc730` |
+| 8 | S8 judge error Stop | `32cd040` |
+| 9 | grand pass (198 + 1 skipped, e2e_auto 19 in 31s, BLOCKED 0, LOC max 282) | (no commit) |
+| 10 | release: pyproject 0.5.0 + notes + HANDOFF + tag | (이 commit) |
+
+#### 0.4.0 → 0.5.0 변경 요약
+
+- `codingbot/llm_judge.py`: `_call` 진입부에 env `CODINGBOT_FAULT_INJECT ∈ {judge_timeout, judge_error}` 분기 4라인. 미설정 시 기존 동작 100% 동일.
+- `tests/e2e/conftest.py`: `transcript_jsonl_factory`, `hook_env` factory fixture 추가.
+- `tests/e2e/hook_harness.py` (신규): `HookResult` dataclass + `run_pre_tool_use` / `run_stop_hook` (`sys.executable -m codingbot.hooks.X`).
+- `tests/e2e/test_hook_integration.py` (신규): S5/S6/S7/S8 4건.
+- `tests/e2e/test_runner_loop.py`: S4 1건 추가.
+- `tests/unit/test_llm_judge.py`: fault-inject 회귀 3건.
+- `pyproject.toml`: 0.4.0 → 0.5.0.
+- 의존 그래프 / public API / state schema 변경 없음.
 
 ### 0.4.0 ship 완료 (e2e 자동화 사이클 — fake claude + 3 시나리오 + e2e_auto 마커)
 
@@ -153,10 +188,11 @@ c2957db  release: 0.1.1                                              ← v0.1.1 
 
 ### 테스트 현황
 
-- **182 pass + 1 skipped** (0.3.0 시점 176 → 0.4.0에서 +6: fake_claude 단위 3 + S1/S2/S3 통합 3)
+- **198 pass + 1 skipped** (0.4.0 시점 182 → 0.5.0에서 +16: llm_judge fault-inject 3 + e2e fixtures 3 + hook_harness 5 + S4 1 + S5~S8 4)
+- 이전: 182 pass + 1 skipped (0.3.0 시점 176 → 0.4.0에서 +6: fake_claude 단위 3 + S1/S2/S3 통합 3)
 - 이전: 176 pass + 1 skipped (0.2.0 시점 148 → 0.3.0에서 +28: state 11 + llm_judge 3 + auto_approve 6 + handoff_or_continue 6 + cli 2)
 - 이전: 148 pass + 1 skipped (0.1.2 시점 99 → 0.2.0에서 +49: split 10 + secret 7 + install 7 + priv 6 + chain bypass 11 + config 4 + llm_judge 3 + runner 1)
-- e2e: 두 트랙 — `e2e_auto` (자동, 무료, 6건) + `e2e` (manual, $, smoke)
+- e2e: 두 트랙 — `e2e_auto` (자동, 무료, 19건, ~31초) + `e2e` (manual, $, smoke)
 - `BLOCKED` grep 시 코드 **0건**
 - 모든 코드 파일 ≤ 500 LOC (max `tests/unit/test_heuristics.py` 338, 다음 `codingbot/heuristics.py` 282)
 
@@ -164,24 +200,31 @@ c2957db  release: 0.1.1                                              ← v0.1.1 
 
 ## (b) 다음에 할 일
 
-0.4.0 ship까지 완료 (push는 별도 게이트). release 게이트 모두 닫힘. 다음 후보(우선순위 낮음):
+0.5.0 ship 완료 (push는 별도 게이트). 다음 후보:
 
-### 0.4.x polish 후보
+### 0.5.x polish 후보
 
-- e2e 수동 검증 (실제 Claude Code run에서 카운터 누적 확인 — 비용 발생).
+- e2e 수동 검증 (실제 Claude Code run).
 - HANDOFF "지금까지 한 일" archive 정리 (0.1.x ~ 0.3.0 블록 압축 검토).
 
-### 0.5.0 brainstorm 후보
+### 0.6.0 brainstorm 후보
 
-- transcript JSONL 시뮬레이션으로 hook 분기까지 통합 e2e
-- S4(연속 abnormal 2회 → exit 2), S5(stop signal), JudgeTimeout 분기
-- judge 캐싱 (0.3.0 측정 데이터로 ROI 평가 후 결정)
-- 외부 metrics export / dashboard
-- D 가치(배포/패키징): pip install codingbot, GitHub Releases 자동화 등
+- risky_tool 차단 e2e (secret/install/priv hook 트랙).
+- judge 캐싱 (0.3.0 측정 데이터로 ROI 평가 후 결정).
+- abnormal exit state 카운터 + S9 시나리오.
+- 외부 metrics export / dashboard.
+- D 가치(배포/패키징): pip install codingbot, GitHub Releases 자동화 등.
 
 ---
 
 ## (c) 새 세션이 알아야 할 중요 컨텍스트
+
+### 0.5.0에서 변경된 것
+
+- `codingbot/llm_judge.py`: `_call` 진입부에 env `CODINGBOT_FAULT_INJECT ∈ {judge_timeout, judge_error}` 분기 4라인 추가. prod 영향 0 (env 미설정 시 미진입). 분기 진입 시 메시지 prefix `fault inject:`로 로그 식별 가능.
+- 새 fixture: `transcript_jsonl_factory`, `hook_env` (`tests/e2e/conftest.py`).
+- 새 모듈: `tests/e2e/hook_harness.py` — `HookResult` + `run_pre_tool_use` / `run_stop_hook` (subprocess `sys.executable -m codingbot.hooks.X`).
+- 새 e2e 테스트 파일: `tests/e2e/test_hook_integration.py` (S5/S6/S7/S8).
 
 ### 환경 (변경 없음)
 
