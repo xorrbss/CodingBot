@@ -1,11 +1,44 @@
 # CodingBot 개발 핸드오프
 
-**작성일**: 2026-05-01 (11th update — 0.3.0 push 완료)
+**작성일**: 2026-05-01 (12th update — 0.4.0 ship 완료)
 **대상**: 다음 작업 세션
 
 ---
 
 ## (a) 지금까지 한 일
+
+### 0.4.0 ship 완료 (e2e 자동화 사이클 — fake claude + 3 시나리오 + e2e_auto 마커)
+
+- 베이스: `v0.3.0` (`e4196b8`)
+- 사이클 가치: C — 검증 자동화
+- 범위: 운영 코드 무수정. `tests/e2e/`에 fake_claude + conftest fixtures + 6 회귀.
+- spec: `docs/superpowers/specs/2026-05-01-codingbot-0.4.0-design.md`
+- plan: `docs/superpowers/plans/2026-05-01-codingbot-0.4.0.md`
+- release notes: `docs/release-notes-0.4.0.md`
+- 태그 `v0.4.0` (annotated, 이 commit) 로컬 생성. push는 별도 게이트.
+
+#### 이번 사이클 작업 요약 (Task 1~8)
+
+| Task | 내용 | 커밋 |
+|---|---|---|
+| 1 | fake_claude.py + 단위 회귀 3 (+ e2e_auto 마커 + handoff 보존 assert hotfix) | `8fab000` / `2205e2c` |
+| 2 | conftest fixtures (fake_claude_shim monkeypatch + e2e_scenario) + 임시 wire-up | `fe68696` / `02158cf` / `31544ae` |
+| 3 | S1 happy_1_cycle | `6f46ac5` |
+| 4 | S2 handoff_multi | `fab8d2a` |
+| 5 | S3 abnormal_recover + wire-up 정리 | `15cdefa` |
+| 6 | README dual-track (마커는 Task 1 hotfix에서 선반영) | `d3601a4` |
+| 7 | grand pass: 182 + 1 skipped, LOC max 338, BLOCKED 0, 운영 diff 0 | (no commit) |
+| 8 | release: pyproject 0.4.0 + notes + HANDOFF + tag | (이 commit) |
+
+#### 0.3.0 → 0.4.0 변경 요약
+
+- `tests/e2e/fake_claude.py` 신규 (stdlib only). 시나리오 step 단위 실행.
+- `tests/e2e/conftest.py` 신규. `fake_claude_shim` (codingbot.runner.subprocess.run monkeypatch) + `e2e_scenario` factory.
+- `tests/e2e/test_runner_loop.py` 신규 (S1/S2/S3).
+- `tests/e2e/test_fake_claude.py` 신규 (3건).
+- `pyproject.toml` 마커 `e2e_auto` 추가. version 0.3.0 → 0.4.0.
+- `tests/e2e/README.md` dual-track 갱신.
+- 운영 코드(`codingbot/*`) **무변경**. `git diff v0.3.0..v0.4.0 -- codingbot/`: 빈 diff.
 
 ### 0.3.0 push 완료 (관측(metrics) 사이클 — state 카운터 12 + JudgeTimeout + status 섹션화)
 
@@ -119,26 +152,28 @@ c2957db  release: 0.1.1                                              ← v0.1.1 
 
 ### 테스트 현황
 
-- **176 pass + 1 skipped** (0.2.0 시점 148 → 0.3.0에서 +28: state 11 + llm_judge 3 + auto_approve 6 + handoff_or_continue 6 + cli 2)
+- **182 pass + 1 skipped** (0.3.0 시점 176 → 0.4.0에서 +6: fake_claude 단위 3 + S1/S2/S3 통합 3)
+- 이전: 176 pass + 1 skipped (0.2.0 시점 148 → 0.3.0에서 +28: state 11 + llm_judge 3 + auto_approve 6 + handoff_or_continue 6 + cli 2)
 - 이전: 148 pass + 1 skipped (0.1.2 시점 99 → 0.2.0에서 +49: split 10 + secret 7 + install 7 + priv 6 + chain bypass 11 + config 4 + llm_judge 3 + runner 1)
-- e2e는 여전히 manual trigger only (`-m e2e`)
+- e2e: 두 트랙 — `e2e_auto` (자동, 무료, 6건) + `e2e` (manual, $, smoke)
 - `BLOCKED` grep 시 코드 **0건**
-- 모든 코드 파일 ≤ 500 LOC (max `heuristics.py` 282, 다음 `state.py` 173)
+- 모든 코드 파일 ≤ 500 LOC (max `tests/unit/test_heuristics.py` 338, 다음 `codingbot/heuristics.py` 282)
 
 ---
 
 ## (b) 다음에 할 일
 
-0.3.0 push까지 완료. release 게이트 모두 닫힘. 다음 후보(우선순위 낮음):
+0.4.0 ship까지 완료 (push는 별도 게이트). release 게이트 모두 닫힘. 다음 후보(우선순위 낮음):
 
-### 0.3.x polish 후보
+### 0.4.x polish 후보
 
 - e2e 수동 검증 (실제 Claude Code run에서 카운터 누적 확인 — 비용 발생).
-- HANDOFF의 "지금까지 한 일" 항목이 누적되고 있어 다음 사이클에서 archive 정리 검토.
+- HANDOFF "지금까지 한 일" archive 정리 (0.1.x ~ 0.3.0 블록 압축 검토).
 
-### 0.4.0 brainstorm 후보
+### 0.5.0 brainstorm 후보
 
-- e2e 자동 검증 골격 (mock Claude 또는 cassette)
+- transcript JSONL 시뮬레이션으로 hook 분기까지 통합 e2e
+- S4(연속 abnormal 2회 → exit 2), S5(stop signal), JudgeTimeout 분기
 - judge 캐싱 (0.3.0 측정 데이터로 ROI 평가 후 결정)
 - 외부 metrics export / dashboard
 - D 가치(배포/패키징): pip install codingbot, GitHub Releases 자동화 등
@@ -202,10 +237,12 @@ hooks/handoff_or_continue  → handoff, heuristics, llm_judge, logger, state, tr
 - spec (0.1.x): `docs/superpowers/specs/2026-04-30-codingbot-design.md`
 - spec (0.2.0): `docs/superpowers/specs/2026-05-01-codingbot-0.2.0-design.md`
 - spec (0.3.0): `docs/superpowers/specs/2026-05-01-codingbot-0.3.0-design.md`
+- spec (0.4.0): `docs/superpowers/specs/2026-05-01-codingbot-0.4.0-design.md`
 - plan (0.1.x): `docs/superpowers/plans/2026-04-30-codingbot.md` (historical)
 - plan (0.2.0): `docs/superpowers/plans/2026-05-01-codingbot-0.2.0.md`
 - plan (0.3.0): `docs/superpowers/plans/2026-05-01-codingbot-0.3.0.md`
-- release notes: `docs/release-notes-0.1.1.md`, `docs/release-notes-0.1.2.md`, `docs/release-notes-0.2.0.md`, `docs/release-notes-0.3.0.md`
+- plan (0.4.0): `docs/superpowers/plans/2026-05-01-codingbot-0.4.0.md`
+- release notes: `docs/release-notes-0.1.1.md`, `docs/release-notes-0.1.2.md`, `docs/release-notes-0.2.0.md`, `docs/release-notes-0.3.0.md`, `docs/release-notes-0.4.0.md`
 - push procedure: `docs/push-procedure.md`
 
 ---
@@ -214,9 +251,10 @@ hooks/handoff_or_continue  → handoff, heuristics, llm_judge, logger, state, tr
 
 다음 세션 시작 시:
 
-> "CodingBot **0.3.0 ship + push 완료** (관측(metrics) 사이클 — state 카운터 12 + JudgeTimeout + status 섹션화. origin/master = HEAD, `v0.3.0` push됨).
-> 176/176 green, BLOCKED 0건, 모든 파일 ≤ 500 LOC. 0.3.x polish 갈까, 0.4.0 brainstorm 갈까, 아니면 다른 작업?"
+> "CodingBot **0.4.0 ship 완료** (e2e 자동화 사이클 — fake claude + 3 시나리오, 운영 코드 무수정).
+> 182/182 green, BLOCKED 0건, 모든 파일 ≤ 500 LOC. push 갈까, 0.4.x polish 갈까, 0.5.0 brainstorm 갈까?"
 
 선택지:
-- 0.3.x polish → e2e 수동 검증 또는 HANDOFF archive 정리
-- 0.4.0 brainstorm → e2e 자동화, judge 캐싱, metrics export, 배포(D) 등
+- push → `docs/push-procedure.md` 따라 `git push origin master --follow-tags` (사용자 승인 게이트)
+- 0.4.x polish → e2e 수동 검증 또는 HANDOFF archive 정리
+- 0.5.0 brainstorm → transcript 시뮬레이션 e2e, judge 캐싱, metrics export, 배포(D) 등
