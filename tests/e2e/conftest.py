@@ -1,8 +1,6 @@
-"""tests/e2e/ 전용 fixture — fake_claude shim + scenario factory."""
+"""tests/e2e/ 전용 fixture — codingbot.runner.subprocess.run 라우팅 + 시나리오 factory."""
 import json
-import os
-import shutil
-import stat
+import subprocess as _stdlib_subprocess
 import sys
 from pathlib import Path
 
@@ -13,39 +11,29 @@ FAKE_CLAUDE = Path(__file__).parent / "fake_claude.py"
 
 
 @pytest.fixture
-def fake_claude_shim(tmp_path, monkeypatch):
-    """`claude` CLI를 fake_claude.py로 가리는 PATH shim 디렉터리.
+def fake_claude_shim(monkeypatch):
+    """codingbot.runner의 subprocess.run을 fake_claude로 라우팅.
 
-    Returns:
-        bin_dir (Path): shim이 위치한 디렉터리. shutil.which("claude")가 이 dir의
-        파일을 가리키도록 fail-fast assert 한다.
+    Windows에서는 PATH 기반 .cmd shim이 시스템 claude.exe에 가려지므로 monkeypatch
+    패턴이 필요하다. POSIX에서도 동일한 결정성을 위해 같은 방식을 사용.
+
+    Returns: wrapper 함수 (디버깅 편의, 미사용 가능).
     """
-    bin_dir = tmp_path / "bin"
-    bin_dir.mkdir()
+    real_run = _stdlib_subprocess.run
 
-    if sys.platform == "win32":
-        shim = bin_dir / "claude.cmd"
-        shim.write_text(
-            f'@python "{FAKE_CLAUDE}" %*\n',
-            encoding="utf-8",
-        )
-    else:
-        shim = bin_dir / "claude"
-        shim.write_text(
-            f'#!/usr/bin/env python3\n'
-            f'import runpy, sys\n'
-            f'sys.argv[0] = "{FAKE_CLAUDE}"\n'
-            f'runpy.run_path("{FAKE_CLAUDE}", run_name="__main__")\n',
-            encoding="utf-8",
-        )
-        shim.chmod(shim.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+    def _wrapper(args, *a, **kw):
+        if (
+            isinstance(args, (list, tuple))
+            and args
+            and args[0] == "claude"
+        ):
+            new_args = [sys.executable, str(FAKE_CLAUDE), *args[1:]]
+            return real_run(new_args, *a, **kw)
+        return real_run(args, *a, **kw)
 
-    monkeypatch.setenv("PATH", str(bin_dir) + os.pathsep + os.environ["PATH"])
-    which = shutil.which("claude")
-    assert which is not None and Path(which).parent == bin_dir, (
-        f"shim not at front of PATH: which={which}, bin_dir={bin_dir}"
-    )
-    return bin_dir
+    # codingbot.runner는 `import subprocess`로 참조 → `runner.subprocess.run` patch
+    monkeypatch.setattr("codingbot.runner.subprocess.run", _wrapper)
+    return _wrapper
 
 
 @pytest.fixture
@@ -53,6 +41,7 @@ def e2e_scenario(tmp_path, monkeypatch):
     """시나리오 dict → JSON 파일 → CODINGBOT_E2E_SCENARIO 설정.
 
     factory fixture: 테스트가 `e2e_scenario({...})` 처럼 호출.
+    동일 테스트 내 재호출 시 마지막 시나리오로 덮어쓴다 (last-write-wins).
     """
     def _set(scenario: dict) -> Path:
         scenario_path = tmp_path / "scenario.json"
