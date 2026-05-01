@@ -70,3 +70,37 @@ def test_config_outputs_yaml_keys(tmp_codingbot_home, capsys):
     out = capsys.readouterr().out
     assert "time_limit_minutes" in out
     assert "judge_model" in out
+
+
+def test_status_includes_new_sections(tmp_codingbot_home, capsys):
+    from codingbot import state
+    state.start_cycle()
+    cli.main(["status"])
+    out = capsys.readouterr().out
+    assert "=== Cycle ===" in out
+    assert "=== Decisions (PreToolUse) ===" in out
+    assert "=== Decisions (Stop) ===" in out
+    assert "=== Judge ===" in out
+    assert "=== Config ===" in out
+
+
+def test_status_includes_new_counter_keys(tmp_codingbot_home, capsys):
+    from codingbot import state
+    state.start_cycle()
+    cli.main(["status"])
+    out = capsys.readouterr().out
+    for key in (
+        "auto_approve_by_heuristic",
+        "auto_approve_by_llm",
+        "auto_defer_by_rule",
+        "auto_defer_by_heuristic",
+        "auto_defer_by_llm",
+        "stop_block_continue",
+        "stop_block_handoff",
+        "stop_block_unstuck",
+        "stop_allow",
+        "judge_call_total",
+        "judge_timeout_total",
+        "judge_error_total",
+    ):
+        assert key in out, f"status output missing key: {key}"

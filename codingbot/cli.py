@@ -30,12 +30,34 @@ def _cmd_status(args: argparse.Namespace) -> int:
     print(f"home: {paths.codingbot_home()}")
     print(f"stop signal: {'YES' if paths.stop_signal_file().exists() else 'no'}")
     print(f"runner lock: {'YES' if paths.lock_file().exists() else 'no'}")
-    print(f"state cycles_this_run: {s.get('cycles_this_run', 0)}")
-    print(f"state auto_approve_count: {s.get('auto_approve_count', 0)}")
-    print(f"state auto_continue_count: {s.get('auto_continue_count', 0)}")
-    print(f"state cycle_started_at: {s.get('cycle_started_at', 'n/a')}")
-    print(f"config time_limit_minutes: {cfg.time_limit_minutes}")
-    print(f"config max_cycles_per_run: {cfg.max_cycles_per_run}")
+
+    print("\n=== Cycle ===")
+    print(f"cycle_started_at: {s.get('cycle_started_at', 'n/a')}")
+    print(f"cycles_this_run: {s.get('cycles_this_run', 0)}")
+    print(f"auto_approve_count: {s.get('auto_approve_count', 0)}")
+    print(f"auto_continue_count: {s.get('auto_continue_count', 0)}")
+
+    print("\n=== Decisions (PreToolUse) ===")
+    print(f"auto_approve_by_heuristic: {s.get('auto_approve_by_heuristic', 0)}")
+    print(f"auto_approve_by_llm: {s.get('auto_approve_by_llm', 0)}")
+    print(f"auto_defer_by_rule: {s.get('auto_defer_by_rule', 0)}")
+    print(f"auto_defer_by_heuristic: {s.get('auto_defer_by_heuristic', 0)}")
+    print(f"auto_defer_by_llm: {s.get('auto_defer_by_llm', 0)}")
+
+    print("\n=== Decisions (Stop) ===")
+    print(f"stop_block_continue: {s.get('stop_block_continue', 0)}")
+    print(f"stop_block_handoff: {s.get('stop_block_handoff', 0)}")
+    print(f"stop_block_unstuck: {s.get('stop_block_unstuck', 0)}")
+    print(f"stop_allow: {s.get('stop_allow', 0)}")
+
+    print("\n=== Judge ===")
+    print(f"judge_call_total: {s.get('judge_call_total', 0)}")
+    print(f"judge_timeout_total: {s.get('judge_timeout_total', 0)}")
+    print(f"judge_error_total: {s.get('judge_error_total', 0)}")
+
+    print("\n=== Config ===")
+    print(f"time_limit_minutes: {cfg.time_limit_minutes}")
+    print(f"max_cycles_per_run: {cfg.max_cycles_per_run}")
     return 0
 
 
