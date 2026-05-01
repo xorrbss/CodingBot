@@ -110,3 +110,91 @@ def test_read_stop_signal_reflects_file_presence(tmp_codingbot_home):
     assert serve._read_stop_signal() is False
     paths.stop_signal_file().touch()
     assert serve._read_stop_signal() is True
+
+
+def test_route_root_returns_index_html(tmp_codingbot_home):
+    from codingbot import serve
+    status, ctype, body = serve._route("GET", "/")
+    assert status == 200
+    assert ctype.startswith("text/html")
+    # placeholder든 본문이든 비지 않음
+    assert len(body) > 0
+
+
+def test_route_static_index_html(tmp_codingbot_home):
+    from codingbot import serve
+    status, ctype, body = serve._route("GET", "/static/index.html")
+    assert status == 200
+    assert ctype.startswith("text/html")
+
+
+def test_route_static_path_traversal_blocked(tmp_codingbot_home):
+    from codingbot import serve
+    status, _, _ = serve._route("GET", "/static/../../etc/passwd")
+    assert status == 404
+
+
+def test_route_static_unknown_file_returns_404(tmp_codingbot_home):
+    from codingbot import serve
+    status, _, _ = serve._route("GET", "/static/does-not-exist.css")
+    assert status == 404
+
+
+def test_route_api_state_returns_json(tmp_codingbot_home):
+    from codingbot import state, serve
+    state.start_cycle()
+    status, ctype, body = serve._route("GET", "/api/state")
+    assert status == 200
+    assert ctype == "application/json"
+    payload = json.loads(body.decode("utf-8"))
+    # 0.6.0 카운터 키 일부 포함
+    assert "cycles_this_run" in payload
+    assert "judge_call_total" in payload
+    # serve가 덧붙이는 키
+    assert "lock_pid" in payload
+    assert "stop_signal" in payload
+    assert "ts" in payload
+
+
+def test_route_api_log_tail_returns_lines(tmp_codingbot_home):
+    from codingbot import serve
+    paths.log_file().write_text(
+        '{"event":"a"}\n{"event":"b"}\n{"event":"c"}\n', encoding="utf-8"
+    )
+    status, ctype, body = serve._route("GET", "/api/log/tail?n=2")
+    assert status == 200
+    assert ctype == "application/json"
+    payload = json.loads(body.decode("utf-8"))
+    assert payload["lines"] == ['{"event":"b"}', '{"event":"c"}']
+
+
+def test_route_api_log_tail_default_n(tmp_codingbot_home):
+    from codingbot import serve
+    paths.log_file().write_text("\n".join(f'{{"i":{i}}}' for i in range(80)) + "\n", encoding="utf-8")
+    status, _, body = serve._route("GET", "/api/log/tail")
+    payload = json.loads(body.decode("utf-8"))
+    # default n = 50
+    assert len(payload["lines"]) == 50
+
+
+def test_route_api_timeline_default_window(tmp_codingbot_home):
+    from codingbot import serve
+    status, ctype, body = serve._route("GET", "/api/timeline")
+    assert status == 200
+    assert ctype == "application/json"
+    payload = json.loads(body.decode("utf-8"))
+    # default window 1800s, bucket 60s = 30
+    assert "buckets" in payload
+    assert len(payload["buckets"]) == 30
+
+
+def test_route_unknown_path_404(tmp_codingbot_home):
+    from codingbot import serve
+    status, _, _ = serve._route("GET", "/nope")
+    assert status == 404
+
+
+def test_route_non_get_returns_405(tmp_codingbot_home):
+    from codingbot import serve
+    status, _, _ = serve._route("POST", "/api/state")
+    assert status == 405

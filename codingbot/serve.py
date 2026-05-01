@@ -4,10 +4,13 @@
 의존: stdlib만.
 """
 import json
+import re
 from datetime import datetime, timedelta, timezone
-from typing import List, Optional
+from importlib.resources import files
+from typing import List, Optional, Tuple
+from urllib.parse import urlparse, parse_qs
 
-from codingbot import paths
+from codingbot import paths, state
 
 # log.jsonl event 분류
 _JUDGE_LLM_EVENTS = {"auto_approve", "auto_defer_to_user", "stop_hook"}
@@ -90,3 +93,96 @@ def _read_lock_pid() -> Optional[int]:
 def _read_stop_signal() -> bool:
     """`paths.stop_signal_file()` 존재 여부."""
     return paths.stop_signal_file().exists()
+
+
+_STATIC_NAME_RE = re.compile(r"^[A-Za-z0-9._-]+$")
+
+
+def _read_log_tail_lines(n: int) -> List[str]:
+    p = paths.log_file()
+    if not p.exists():
+        return []
+    return p.read_text(encoding="utf-8").splitlines()[-n:]
+
+
+def _load_static(name: str) -> Optional[bytes]:
+    if not _STATIC_NAME_RE.match(name):
+        return None
+    target = files("codingbot.static") / name
+    if not target.is_file():
+        return None
+    return target.read_bytes()
+
+
+def _content_type_for(name: str) -> str:
+    if name.endswith(".html"):
+        return "text/html; charset=utf-8"
+    if name.endswith(".js"):
+        return "application/javascript; charset=utf-8"
+    if name.endswith(".css"):
+        return "text/css; charset=utf-8"
+    return "application/octet-stream"
+
+
+def _payload_state() -> bytes:
+    s = state.read()
+    enriched = {
+        **s,
+        "lock_pid": _read_lock_pid(),
+        "stop_signal": _read_stop_signal(),
+        "ts": datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z"),
+    }
+    return json.dumps(enriched, ensure_ascii=False).encode("utf-8")
+
+
+def _payload_log_tail(n: int) -> bytes:
+    return json.dumps({"lines": _read_log_tail_lines(n)}, ensure_ascii=False).encode("utf-8")
+
+
+def _payload_timeline(window_sec: int) -> bytes:
+    return json.dumps(
+        {"buckets": _compute_timeline(window_sec=window_sec, bucket_sec=60)},
+        ensure_ascii=False,
+    ).encode("utf-8")
+
+
+def _route(method: str, path: str) -> Tuple[int, str, bytes]:
+    """순수 라우팅 함수. (status, content_type, body) 반환."""
+    if method != "GET":
+        return 405, "text/plain; charset=utf-8", b"method not allowed"
+
+    parsed = urlparse(path)
+    p = parsed.path
+    qs = parse_qs(parsed.query)
+
+    if p == "/":
+        body = _load_static("index.html") or b""
+        if not body:
+            return 404, "text/plain; charset=utf-8", b"index not found"
+        return 200, _content_type_for("index.html"), body
+
+    if p.startswith("/static/"):
+        name = p[len("/static/"):]
+        body = _load_static(name)
+        if body is None:
+            return 404, "text/plain; charset=utf-8", b"not found"
+        return 200, _content_type_for(name), body
+
+    if p == "/api/state":
+        return 200, "application/json", _payload_state()
+
+    if p == "/api/log/tail":
+        try:
+            n = int(qs.get("n", ["50"])[0])
+        except ValueError:
+            n = 50
+        return 200, "application/json", _payload_log_tail(n)
+
+    if p == "/api/timeline":
+        try:
+            window = int(qs.get("window", ["1800"])[0])
+        except ValueError:
+            window = 1800
+        return 200, "application/json", _payload_timeline(window)
+
+    return 404, "text/plain; charset=utf-8", b"not found"
