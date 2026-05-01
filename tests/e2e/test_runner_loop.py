@@ -1,4 +1,4 @@
-"""runner loop e2e (S1/S2/S3) — Task 2 임시 fixture 검증부터."""
+"""runner loop e2e (S1/S2/S3)."""
 import json
 from pathlib import Path
 
@@ -6,21 +6,6 @@ import pytest
 
 
 pytestmark = pytest.mark.e2e_auto
-
-
-def test_route_and_scenario_fixtures_wire_up(
-    tmp_codingbot_home, fake_claude_shim, e2e_scenario
-):
-    # monkeypatch가 codingbot.runner.subprocess.run을 라우팅하는지 확인
-    e2e_scenario({"name": "smoke", "steps": [
-        {"exit_code": 7, "handoff": None},
-    ]})
-
-    from codingbot.runner import subprocess as runner_subprocess
-    r = runner_subprocess.run(["claude", "probe"], capture_output=True, text=True)
-    assert r.returncode == 7, (r.returncode, r.stdout, r.stderr)
-    # step counter 증가 확인
-    assert (tmp_codingbot_home / ".e2e_step").read_text() == "1"
 
 
 def _read_log_events(home: Path) -> list[dict]:
@@ -88,6 +73,34 @@ def test_s2_handoff_multi(tmp_codingbot_home, fake_claude_shim, e2e_scenario):
     assert "initial prompt" in cycle_starts[0]["msg_preview"]
     assert "다음 작업: foo" in cycle_starts[1]["msg_preview"]
     assert "지금 코드 상태를" in cycle_starts[2]["msg_preview"]
+
+    run_ends = [e for e in events if e.get("event") == "run_end"]
+    assert any(e.get("reason") == "final_check_returned_done" for e in run_ends)
+
+
+def test_s3_abnormal_recover(tmp_codingbot_home, fake_claude_shim, e2e_scenario):
+    """첫 사이클 비정상(exit 2) → continue → 다음 사이클 정상 → final-check → 종료."""
+    e2e_scenario({
+        "name": "abnormal_recover",
+        "steps": [
+            {"exit_code": 2, "handoff": None},
+            {"exit_code": 0, "handoff": None},
+            {"exit_code": 0, "handoff": None},
+        ],
+    })
+
+    from codingbot import state
+    from codingbot.runner import run
+
+    rc = run("initial prompt")
+
+    assert rc == 0
+    assert state.read()["cycles_this_run"] == 3
+
+    events = _read_log_events(tmp_codingbot_home)
+    abnormal = [e for e in events if e.get("event") == "claude_abnormal_exit"]
+    assert len(abnormal) == 1
+    assert abnormal[0]["count"] == 1
 
     run_ends = [e for e in events if e.get("event") == "run_end"]
     assert any(e.get("reason") == "final_check_returned_done" for e in run_ends)
