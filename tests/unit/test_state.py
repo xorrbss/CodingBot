@@ -98,3 +98,84 @@ def test_initial_state_includes_new_counters(tmp_codingbot_home):
     s = state.read()
     for key in NEW_COUNTER_KEYS:
         assert s.get(key) == 0, f"missing or non-zero: {key}"
+
+
+import pytest
+
+
+def test_record_auto_approve_by_heuristic(tmp_codingbot_home):
+    state.start_cycle()
+    state.record_auto_approve_by("heuristic")
+    state.record_auto_approve_by("heuristic")
+    s = state.read()
+    assert s["auto_approve_by_heuristic"] == 2
+    assert s["auto_approve_by_llm"] == 0
+
+
+def test_record_auto_approve_by_llm(tmp_codingbot_home):
+    state.start_cycle()
+    state.record_auto_approve_by("llm")
+    s = state.read()
+    assert s["auto_approve_by_llm"] == 1
+
+
+def test_record_auto_approve_by_invalid_raises(tmp_codingbot_home):
+    state.start_cycle()
+    with pytest.raises(ValueError):
+        state.record_auto_approve_by("rule")  # rule은 defer에만 유효
+
+
+def test_record_auto_defer_by_each_source(tmp_codingbot_home):
+    state.start_cycle()
+    for src in ("rule", "heuristic", "llm"):
+        state.record_auto_defer_by(src)
+    s = state.read()
+    assert s["auto_defer_by_rule"] == 1
+    assert s["auto_defer_by_heuristic"] == 1
+    assert s["auto_defer_by_llm"] == 1
+
+
+def test_record_auto_defer_by_invalid_raises(tmp_codingbot_home):
+    state.start_cycle()
+    with pytest.raises(ValueError):
+        state.record_auto_defer_by("unknown_src")
+
+
+def test_record_stop_outcome_each_value(tmp_codingbot_home):
+    state.start_cycle()
+    for o in ("block_continue", "block_handoff", "block_unstuck", "allow"):
+        state.record_stop_outcome(o)
+    s = state.read()
+    assert s["stop_block_continue"] == 1
+    assert s["stop_block_handoff"] == 1
+    assert s["stop_block_unstuck"] == 1
+    assert s["stop_allow"] == 1
+
+
+def test_record_stop_outcome_invalid_raises(tmp_codingbot_home):
+    state.start_cycle()
+    with pytest.raises(ValueError):
+        state.record_stop_outcome("block_unknown")
+
+
+def test_record_judge_call_increments(tmp_codingbot_home):
+    state.start_cycle()
+    state.record_judge_call()
+    state.record_judge_call()
+    state.record_judge_call()
+    s = state.read()
+    assert s["judge_call_total"] == 3
+
+
+def test_record_judge_timeout_increments(tmp_codingbot_home):
+    state.start_cycle()
+    state.record_judge_timeout()
+    s = state.read()
+    assert s["judge_timeout_total"] == 1
+
+
+def test_record_judge_error_increments(tmp_codingbot_home):
+    state.start_cycle()
+    state.record_judge_error()
+    s = state.read()
+    assert s["judge_error_total"] == 1

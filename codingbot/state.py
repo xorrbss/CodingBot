@@ -90,6 +90,56 @@ def record_auto_continue() -> None:
     _increment("auto_continue_count")
 
 
+_VALID_APPROVE_SOURCES = ("heuristic", "llm")
+_VALID_DEFER_SOURCES = ("rule", "heuristic", "llm")
+_VALID_STOP_OUTCOMES = ("block_continue", "block_handoff", "block_unstuck", "allow")
+
+
+def record_auto_approve_by(judge: str) -> None:
+    """PreToolUse approve의 source 분기 카운터.
+
+    judge ∈ {'heuristic','llm'}. 그 외 값은 ValueError (호출자 측 오타 조기 발견).
+    """
+    if judge not in _VALID_APPROVE_SOURCES:
+        raise ValueError(f"invalid approve source: {judge!r} (expected {_VALID_APPROVE_SOURCES})")
+    _increment(f"auto_approve_by_{judge}")
+
+
+def record_auto_defer_by(judge: str) -> None:
+    """PreToolUse defer의 source 분기 카운터.
+
+    judge ∈ {'rule','heuristic','llm'}. rule은 stop_signal/limit 등 룰 기반 defer.
+    """
+    if judge not in _VALID_DEFER_SOURCES:
+        raise ValueError(f"invalid defer source: {judge!r} (expected {_VALID_DEFER_SOURCES})")
+    _increment(f"auto_defer_by_{judge}")
+
+
+def record_stop_outcome(outcome: str) -> None:
+    """Stop hook의 outcome 분기 카운터.
+
+    outcome ∈ {'block_continue','block_handoff','block_unstuck','allow'}.
+    """
+    if outcome not in _VALID_STOP_OUTCOMES:
+        raise ValueError(f"invalid stop outcome: {outcome!r} (expected {_VALID_STOP_OUTCOMES})")
+    _increment(f"stop_{outcome}")
+
+
+def record_judge_call() -> None:
+    """llm_judge `_call` 시도 횟수. 비용 단위."""
+    _increment("judge_call_total")
+
+
+def record_judge_timeout() -> None:
+    """llm_judge timeout 분기."""
+    _increment("judge_timeout_total")
+
+
+def record_judge_error() -> None:
+    """llm_judge timeout 외 실패 분기."""
+    _increment("judge_error_total")
+
+
 def clear_stop_signal() -> None:
     """`.codingbot-stop` 파일 제거 (없어도 OK)."""
     f = paths.stop_signal_file()
