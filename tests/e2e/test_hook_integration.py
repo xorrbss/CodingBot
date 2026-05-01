@@ -54,3 +54,27 @@ def test_s6_judge_timeout_pretool_defers_to_user(
     counters = state.read()
     assert counters.get("judge_timeout_total", 0) == 1
     assert counters.get("judge_call_total", 0) == 1
+
+
+def test_s7_judge_timeout_stop_allows_stop(
+    hook_env, transcript_jsonl_factory
+):
+    """S7: heuristic 미매치 + judge_timeout → Stop hook _allow_stop("llm_timeout"), 카운터 증가."""
+    from codingbot import state
+
+    # is_clearly_done / is_clearly_continuing 둘 다 미매치하도록 중립 텍스트
+    transcript = transcript_jsonl_factory([
+        {"role": "user", "text": "여기까지 좀 봐주세요"},
+        {"role": "assistant", "text": "현재 상태 요약: 변경된 파일 3개."},
+    ])
+
+    r = run_stop_hook(
+        stdin_dict={"transcript_path": str(transcript)},
+        env=hook_env(CODINGBOT_FAULT_INJECT="judge_timeout"),
+    )
+
+    assert r.exit_code == 0
+    assert r.decision is None  # _allow_stop
+    counters = state.read()
+    assert counters.get("judge_timeout_total", 0) == 1
+    assert counters.get("judge_call_total", 0) == 1
