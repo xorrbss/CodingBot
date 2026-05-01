@@ -122,6 +122,34 @@ def _is_install_segment(argv):
     return argv[1] in _INSTALL_SUBCOMMANDS
 
 
+_PRIV_COMMANDS = {"sudo", "runas", "doas", "su", "setcap", "setuid"}
+_CHMOD_BAD_MODE = re.compile(r"^[+-]?7?77\d?$|^a\+w$")
+_CHMOD_PLUS_X_SYSTEM = re.compile(r"^(/|\$HOME|~)")
+_CHOWN_ROOT = re.compile(r"^(root|0)(:\w*)?$|^:0$")
+
+
+def _is_priv_segment(argv):
+    if not argv:
+        return False
+    if argv[0] in _PRIV_COMMANDS:
+        return True
+    if argv[0] == "chmod":
+        for tok in argv[1:]:
+            if _CHMOD_BAD_MODE.match(tok):
+                return True
+        if "+x" in argv[1:]:
+            for tok in argv[1:]:
+                if _CHMOD_PLUS_X_SYSTEM.match(tok):
+                    return True
+        return False
+    if argv[0] == "chown":
+        for tok in argv[1:]:
+            if _CHOWN_ROOT.match(tok):
+                return True
+        return False
+    return False
+
+
 _SAFE_BASH_PREFIXES = (
     "git status",
     "git log",

@@ -224,3 +224,40 @@ def test_install_negative_readonly():
 def test_install_negative_unrelated():
     assert _is_install_segment(["echo", "pip install"]) is False
     assert _is_install_segment(["git", "status"]) is False
+
+
+# priv category
+
+from codingbot.heuristics import _is_priv_segment
+
+
+def test_priv_sudo_family():
+    assert _is_priv_segment(["sudo", "rm", "x"]) is True
+    assert _is_priv_segment(["runas", "/user:Admin", "cmd"]) is True
+    assert _is_priv_segment(["doas", "rm", "x"]) is True
+    assert _is_priv_segment(["su", "-", "root"]) is True
+
+
+def test_priv_chmod_777():
+    assert _is_priv_segment(["chmod", "777", "/etc"]) is True
+    assert _is_priv_segment(["chmod", "-R", "777", "."]) is True
+
+
+def test_priv_chmod_plus_x_suspicious():
+    assert _is_priv_segment(["chmod", "+x", "/etc/script"]) is True
+    assert _is_priv_segment(["chmod", "+x", "$HOME/x"]) is True
+
+
+def test_priv_chown_root():
+    assert _is_priv_segment(["chown", "root", "/etc/passwd"]) is True
+    assert _is_priv_segment(["chown", "0:0", "/etc/x"]) is True
+
+
+def test_priv_setcap_setuid():
+    assert _is_priv_segment(["setcap", "cap_net_raw+ep", "/bin/x"]) is True
+    assert _is_priv_segment(["setuid", "0"]) is True
+
+
+def test_priv_negative_normal_chmod():
+    assert _is_priv_segment(["chmod", "644", "x"]) is False
+    assert _is_priv_segment(["chmod", "+x", "./local-script"]) is False
