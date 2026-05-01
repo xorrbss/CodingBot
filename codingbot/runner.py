@@ -1,5 +1,6 @@
 """Shell-loop wrapper. Claude Code를 자식 프로세스로 띄우고 사이클을 돌린다."""
 import os
+import shutil
 import signal
 import subprocess
 import sys
@@ -68,8 +69,21 @@ def _release_lock() -> None:
 def run(initial_prompt: str) -> int:
     """자동화 루프 실행.
 
-    Returns: 종료 코드 (0=정상, 1=락 충돌, 2=Claude Code 연속 비정상 종료).
+    Returns: 종료 코드
+        0 = 정상
+        1 = 락 충돌
+        2 = Claude Code 연속 비정상 종료
+        3 = 환경 오류 (claude CLI 부재 등)
     """
+    if shutil.which("claude") is None:
+        logger.error("env_error", reason="claude_cli_not_found")
+        print(
+            "[codingbot] claude CLI를 PATH에서 찾을 수 없습니다. "
+            "Claude Code를 설치하거나 PATH를 확인하세요.",
+            file=sys.stderr,
+        )
+        return 3
+
     try:
         _acquire_lock()
     except RunnerLockError as e:

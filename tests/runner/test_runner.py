@@ -1,4 +1,5 @@
 import os
+import shutil
 import subprocess as sp
 from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock
@@ -6,6 +7,15 @@ from unittest.mock import MagicMock
 import pytest
 
 from codingbot import handoff, paths, runner, state
+
+
+@pytest.fixture(autouse=True)
+def _claude_present(monkeypatch):
+    """기본적으로 claude CLI가 PATH에 있다고 가정. 부재 테스트는 자체 override."""
+    monkeypatch.setattr(
+        shutil, "which",
+        lambda name: "/usr/bin/claude" if name == "claude" else None,
+    )
 
 
 class FakeClaude:
@@ -127,3 +137,11 @@ def test_normal_flow_returns_zero(tmp_codingbot_home, monkeypatch):
     monkeypatch.setattr(sp, "run", fake)
     rc = runner.run("초기")
     assert rc == 0
+
+
+def test_run_returns_3_when_claude_cli_missing(tmp_codingbot_home, monkeypatch, capsys):
+    monkeypatch.setattr(shutil, "which", lambda name: None)
+    rc = runner.run("dummy")
+    assert rc == 3
+    captured = capsys.readouterr()
+    assert "claude" in captured.err.lower()
