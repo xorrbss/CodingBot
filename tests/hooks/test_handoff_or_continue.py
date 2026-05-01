@@ -91,3 +91,105 @@ def test_invalid_input_does_not_crash(tmp_codingbot_home):
         timeout=60,
     )
     assert r.returncode == 0
+
+
+# --- 0.3.0 카운터 회귀 ---
+
+from codingbot import state
+
+
+def _read_state(home):
+    sf = home / "state.json"
+    if not sf.exists():
+        return {}
+    return json.loads(sf.read_text(encoding="utf-8"))
+
+
+def test_counter_continuing_increments_block_continue(tmp_codingbot_home):
+    state.start_cycle()
+    r = _run_hook(
+        {"transcript_path": str(FIXTURE_DIR / "sample_continuing.jsonl")},
+        env_overrides={"CODINGBOT_HOME": str(tmp_codingbot_home)},
+    )
+    assert r.returncode == 0
+    s = _read_state(tmp_codingbot_home)
+    assert s["stop_block_continue"] == 1
+    assert s["stop_block_handoff"] == 0
+    assert s["auto_continue_count"] == 1  # 호환 카운터도 증가
+
+
+def test_counter_done_increments_block_handoff(tmp_codingbot_home):
+    state.start_cycle()
+    r = _run_hook(
+        {"transcript_path": str(FIXTURE_DIR / "sample_done.jsonl")},
+        env_overrides={"CODINGBOT_HOME": str(tmp_codingbot_home)},
+    )
+    assert r.returncode == 0
+    s = _read_state(tmp_codingbot_home)
+    assert s["stop_block_handoff"] == 1
+    assert s["stop_block_continue"] == 0
+
+
+def test_counter_stop_signal_increments_allow(tmp_codingbot_home):
+    state.start_cycle()
+    (tmp_codingbot_home / ".codingbot-stop").touch()
+    r = _run_hook(
+        {"transcript_path": str(FIXTURE_DIR / "sample_continuing.jsonl")},
+        env_overrides={"CODINGBOT_HOME": str(tmp_codingbot_home)},
+    )
+    assert r.returncode == 0
+    s = _read_state(tmp_codingbot_home)
+    assert s["stop_allow"] == 1
+
+
+def test_counter_handoff_already_written_increments_allow(tmp_codingbot_home):
+    state.start_cycle()
+    (tmp_codingbot_home / "handoff.md").write_text("x", encoding="utf-8")
+    r = _run_hook(
+        {"transcript_path": str(FIXTURE_DIR / "sample_continuing.jsonl")},
+        env_overrides={"CODINGBOT_HOME": str(tmp_codingbot_home)},
+    )
+    assert r.returncode == 0
+    s = _read_state(tmp_codingbot_home)
+    assert s["stop_allow"] == 1
+
+
+def test_counter_llm_timeout_increments_timeout_and_allow(tmp_codingbot_home, tmp_path, mocker):
+    """ambiguous transcript → llm_judge timeout → stop_allow + judge_timeout_total."""
+    import io, sys
+    import anthropic
+
+    state.start_cycle()
+    ambiguous = tmp_path / "ambiguous.jsonl"
+    # 새 schema (top-level type + message.content)로 작성
+    ambiguous.write_text(
+        '{"type":"assistant","message":{"content":[{"type":"text","text":"음... 잠시만요"}]}}\n',
+        encoding="utf-8",
+    )
+    mocker.patch.dict(os.environ, {
+        "CODINGBOT_HOME": str(tmp_codingbot_home),
+        "ANTHROPIC_API_KEY": "fake",
+    })
+    mock_client = mocker.MagicMock()
+    mock_client.messages.create.side_effect = anthropic.APITimeoutError(
+        request=type("R", (), {})()
+    )
+    mocker.patch("anthropic.Anthropic", return_value=mock_client)
+
+    from codingbot import config
+    config.load.cache_clear()
+
+    from codingbot.hooks import handoff_or_continue as hc
+    payload = json.dumps({"transcript_path": str(ambiguous)})
+
+    # plan에 redirect_stdin이 있었으나 stdlib에 없음. Task 4와 동일 패턴 사용:
+    mocker.patch.object(sys, "stdin", io.StringIO(payload))
+    mocker.patch.object(sys, "stdout", io.StringIO())
+    rc = hc.main()
+    assert rc == 0
+
+    s = _read_state(tmp_codingbot_home)
+    assert s["judge_call_total"] == 1
+    assert s["judge_timeout_total"] == 1
+    assert s["judge_error_total"] == 0
+    assert s["stop_allow"] == 1

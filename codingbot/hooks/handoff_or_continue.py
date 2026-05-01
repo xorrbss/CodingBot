@@ -27,14 +27,22 @@ UNSTUCK_INSTRUCTION = (
     "여전히 모르겠으면 정확히 뭐가 막혔는지 핸드오프에 적고 종료하세요."
 )
 
+_OUTCOME_TO_COUNTER = {
+    "continue": "block_continue",
+    "request_handoff": "block_handoff",
+    "unstuck": "block_unstuck",
+}
+
 
 def _block(reason: str, judge: str, outcome: str) -> None:
-    state.record_auto_continue()
+    state.record_auto_continue()  # 0.1.x 호환
+    state.record_stop_outcome(_OUTCOME_TO_COUNTER[outcome])  # 0.3.0
     logger.info("stop_hook", outcome=outcome, judge=judge)
     print(json.dumps({"decision": "block", "reason": reason}))
 
 
 def _allow_stop(why: str, judge: str = "rule") -> None:
+    state.record_stop_outcome("allow")  # 0.3.0
     logger.info("stop_hook", outcome="allow_stop", judge=judge, reason=why)
 
 
@@ -65,10 +73,17 @@ def main() -> int:
                 _block(HANDOFF_INSTRUCTION, judge="heuristic", outcome="request_handoff")
                 return 0
 
+        msgs = transcript.read_recent(Path(transcript_path), n=5) if transcript_path else []
+        state.record_judge_call()
         try:
-            msgs = transcript.read_recent(Path(transcript_path), n=5) if transcript_path else []
             verdict = llm_judge.classify(msgs)
+        except llm_judge.JudgeTimeout as e:
+            state.record_judge_timeout()
+            logger.warn("llm_timeout", hook="handoff_or_continue", error=str(e))
+            _allow_stop("llm_timeout", judge="llm")
+            return 0
         except llm_judge.JudgeError as e:
+            state.record_judge_error()
             logger.warn("llm_api_error", hook="handoff_or_continue", error=str(e))
             _allow_stop("llm_failed", judge="llm")
             return 0
