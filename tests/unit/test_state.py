@@ -1,5 +1,8 @@
 import time
 from datetime import datetime, timedelta, timezone
+
+import pytest
+
 from codingbot import state, paths
 
 
@@ -98,9 +101,6 @@ def test_initial_state_includes_new_counters(tmp_codingbot_home):
     s = state.read()
     for key in NEW_COUNTER_KEYS:
         assert s.get(key) == 0, f"missing or non-zero: {key}"
-
-
-import pytest
 
 
 def test_record_auto_approve_by_heuristic(tmp_codingbot_home):
