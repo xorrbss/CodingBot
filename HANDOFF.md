@@ -1,11 +1,36 @@
 # CodingBot 개발 핸드오프
 
-**작성일**: 2026-05-01 (13th update — 0.5.0 ship + push 완료)
+**작성일**: 2026-05-01 (14th update — 0.6.0 ship + push 완료)
 **대상**: 다음 작업 세션
 
 ---
 
 ## (a) 지금까지 한 일
+
+### 0.6.0 ship 완료 (S 사이클 — `status --watch`)
+
+- 베이스: `v0.5.0` (`24f6cd1`)
+- 사이클 가치: **S — 운영 가시성 (한 화면에서 라이브로 본다)**
+- 범위: `codingbot status --watch [--interval N] [--tail N]` — 기존 status 출력을 주기적으로 재출력 + 최근 log 라인 표시. 기존 출력 포맷 보존.
+- spec: `docs/superpowers/specs/2026-05-01-codingbot-0.6.0-design.md`
+- plan: `docs/superpowers/plans/2026-05-01-codingbot-0.6.0.md`
+- release notes: `docs/release-notes-0.6.0.md`
+- origin/master = local master = release commit — push 완료
+- 태그 `v0.6.0` (annotated) origin 등록됨
+- 변경 파일:
+  - `codingbot/cli.py`: `_print_status_body` 분리 + `_read_log_tail` 헬퍼 + `_watch_status` 루프 + status subparser 옵션 3 (`--watch`/`--interval`/`--tail`). 137 → 193 LOC.
+  - `tests/unit/test_cli.py`: 신규 단위 4건 (`_read_log_tail` 2건 + watch 루프 1회 실행 2건).
+- 변경 영향: 외부 인터페이스 추가만 (모두 옵션, 미지정 시 0.5.0 동작 동일). state schema/log 포맷/의존 그래프 변경 없음.
+- 테스트: 202 pass + 1 skipped (0.5.0 198 → +4 cli watch).
+- BLOCKED 0, LOC max 338(test_heuristics.py), cli.py 193, 모두 ≤ 500.
+
+#### 결정 요약 (spec §2 발췌)
+
+- 재출력은 `os.system("cls"/"clear")` + 기존 body 함수 호출 (KISS, 의존 없음).
+- 종료는 `KeyboardInterrupt` → rc 0 (signal 모듈 불요).
+- log tail은 전체 read 후 slice (yagni — log은 cycle당 수 라인). 회전 정책 들어오면 tail-style chunk read로 갈아탐.
+- watch 헤더(`--- CodingBot Status (refresh Ns) --- TS ---`) + `=== Last log ===` 섹션만 추가, 기존 5개 status 섹션 포맷은 그대로.
+- lock pid 표시는 0.6.0 비범위 (별 사이클).
 
 ### 0.5.0 ship 완료 (hook 통합 e2e 사이클 — fault-inject + S4 + S5/S6/S7/S8)
 
@@ -190,7 +215,8 @@ c2957db  release: 0.1.1                                              ← v0.1.1 
 
 ### 테스트 현황
 
-- **198 pass + 1 skipped** (0.4.0 시점 182 → 0.5.0에서 +16: llm_judge fault-inject 3 + e2e fixtures 3 + hook_harness 5 + S4 1 + S5~S8 4)
+- **202 pass + 1 skipped** (0.5.0 시점 198 → 0.6.0 S 사이클에서 +4: cli `_read_log_tail` 2 + status --watch 루프 1회 실행 2)
+- 이전: 198 pass + 1 skipped (0.4.0 시점 182 → 0.5.0에서 +16: llm_judge fault-inject 3 + e2e fixtures 3 + hook_harness 5 + S4 1 + S5~S8 4)
 - 이전: 182 pass + 1 skipped (0.3.0 시점 176 → 0.4.0에서 +6: fake_claude 단위 3 + S1/S2/S3 통합 3)
 - 이전: 176 pass + 1 skipped (0.2.0 시점 148 → 0.3.0에서 +28: state 11 + llm_judge 3 + auto_approve 6 + handoff_or_continue 6 + cli 2)
 - 이전: 148 pass + 1 skipped (0.1.2 시점 99 → 0.2.0에서 +49: split 10 + secret 7 + install 7 + priv 6 + chain bypass 11 + config 4 + llm_judge 3 + runner 1)
@@ -202,14 +228,15 @@ c2957db  release: 0.1.1                                              ← v0.1.1 
 
 ## (b) 다음에 할 일
 
-0.5.0 ship + push 완료. release 게이트 모두 닫힘. 다음 후보(우선순위 낮음):
+0.6.0 ship + push 완료. release 게이트 모두 닫힘. 다음 후보:
 
-### 0.5.x polish 후보
+### 0.6.x polish 후보
 
-- e2e 수동 검증 (실제 Claude Code run).
-- HANDOFF "지금까지 한 일" archive 정리 (0.1.x ~ 0.3.0 블록 압축 검토).
+- e2e 수동 검증 (실제 Claude Code run + watch 화면 직접 확인).
+- watch 헤더에 lock pid 표시 (현재 비범위).
+- README의 status 섹션에 --watch 안내 추가.
 
-### 0.6.0 brainstorm 후보
+### 0.7.0 brainstorm 후보 (0.6.0 한 사이클 후 우선순위 재평가)
 
 - risky_tool 차단 e2e (secret/install/priv hook 트랙).
 - judge 캐싱 (0.3.0 측정 데이터로 ROI 평가 후 결정).
@@ -284,11 +311,15 @@ hooks/handoff_or_continue  → handoff, heuristics, llm_judge, logger, state, tr
 - spec (0.2.0): `docs/superpowers/specs/2026-05-01-codingbot-0.2.0-design.md`
 - spec (0.3.0): `docs/superpowers/specs/2026-05-01-codingbot-0.3.0-design.md`
 - spec (0.4.0): `docs/superpowers/specs/2026-05-01-codingbot-0.4.0-design.md`
+- spec (0.5.0): `docs/superpowers/specs/2026-05-01-codingbot-0.5.0-design.md`
+- spec (0.6.0): `docs/superpowers/specs/2026-05-01-codingbot-0.6.0-design.md`
 - plan (0.1.x): `docs/superpowers/plans/2026-04-30-codingbot.md` (historical)
 - plan (0.2.0): `docs/superpowers/plans/2026-05-01-codingbot-0.2.0.md`
 - plan (0.3.0): `docs/superpowers/plans/2026-05-01-codingbot-0.3.0.md`
 - plan (0.4.0): `docs/superpowers/plans/2026-05-01-codingbot-0.4.0.md`
-- release notes: `docs/release-notes-0.1.1.md`, `docs/release-notes-0.1.2.md`, `docs/release-notes-0.2.0.md`, `docs/release-notes-0.3.0.md`, `docs/release-notes-0.4.0.md`
+- plan (0.5.0): `docs/superpowers/plans/2026-05-01-codingbot-0.5.0.md`
+- plan (0.6.0): `docs/superpowers/plans/2026-05-01-codingbot-0.6.0.md`
+- release notes: `docs/release-notes-0.1.1.md`, `docs/release-notes-0.1.2.md`, `docs/release-notes-0.2.0.md`, `docs/release-notes-0.3.0.md`, `docs/release-notes-0.4.0.md`, `docs/release-notes-0.5.0.md`, `docs/release-notes-0.6.0.md`
 - push procedure: `docs/push-procedure.md`
 
 ---

@@ -104,3 +104,57 @@ def test_status_includes_new_counter_keys(tmp_codingbot_home, capsys):
         "judge_error_total",
     ):
         assert key in out, f"status output missing key: {key}"
+
+
+# 0.6.0 — `status --watch` (S 사이클)
+
+def test_read_log_tail_returns_last_n(tmp_codingbot_home):
+    paths.log_file().write_text(
+        '{"event":"a"}\n{"event":"b"}\n{"event":"c"}\n'
+        '{"event":"d"}\n{"event":"e"}\n',
+        encoding="utf-8",
+    )
+    tail = cli._read_log_tail(2)
+    assert tail == ['{"event":"d"}', '{"event":"e"}']
+
+
+def test_read_log_tail_no_log_returns_empty(tmp_codingbot_home):
+    # log_file()가 없을 때 빈 리스트 (예외 없음)
+    assert not paths.log_file().exists()
+    assert cli._read_log_tail(5) == []
+
+
+def test_status_watch_runs_one_iteration_then_exits_on_interrupt(
+    tmp_codingbot_home, capsys, mocker
+):
+    """time.sleep을 KeyboardInterrupt로 patch → watch 루프 1회 실행 후 정상 종료(rc 0).
+
+    화면 clear 부수효과를 막기 위해 os.system도 no-op patch.
+    출력에는 watch 헤더 + 기존 status 본문 + Last log 섹션이 포함돼야 한다.
+    """
+    paths.log_file().write_text(
+        '{"event":"x"}\n{"event":"y"}\n', encoding="utf-8"
+    )
+    mocker.patch("codingbot.cli.os.system", return_value=0)
+    mocker.patch("codingbot.cli.time.sleep", side_effect=KeyboardInterrupt)
+
+    rc = cli.main(["status", "--watch", "--interval", "1", "--tail", "3"])
+    out = capsys.readouterr().out
+
+    assert rc == 0
+    assert "refresh 1s" in out
+    assert "=== Cycle ===" in out
+    assert "=== Last log ===" in out
+    assert '{"event":"y"}' in out
+
+
+def test_status_watch_default_interval_and_tail(tmp_codingbot_home, capsys, mocker):
+    """--interval / --tail 미지정 시 기본값 (1초, 10줄) 적용 + 헤더 출력."""
+    mocker.patch("codingbot.cli.os.system", return_value=0)
+    mocker.patch("codingbot.cli.time.sleep", side_effect=KeyboardInterrupt)
+
+    rc = cli.main(["status", "--watch"])
+    out = capsys.readouterr().out
+
+    assert rc == 0
+    assert "refresh 1s" in out
