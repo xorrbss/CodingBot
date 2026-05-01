@@ -104,3 +104,30 @@ def test_s3_abnormal_recover(tmp_codingbot_home, fake_claude_shim, e2e_scenario)
 
     run_ends = [e for e in events if e.get("event") == "run_end"]
     assert any(e.get("reason") == "final_check_returned_done" for e in run_ends)
+
+
+def test_s4_abnormal_repeat_exits_2(
+    fake_claude_shim, e2e_scenario, tmp_codingbot_home, capsys
+):
+    """S4: claude가 연속 2회 비정상 종료 → runner.run이 exit 2 반환 + stderr 메시지."""
+    from codingbot import paths, runner, state
+
+    e2e_scenario({
+        "name": "abnormal_repeat",
+        "steps": [
+            {"exit_code": 2, "handoff": None},
+            {"exit_code": 2, "handoff": None},
+        ],
+    })
+    rc = runner.run("초기 프롬프트")
+    assert rc == 2
+
+    err = capsys.readouterr().err
+    assert "연속 비정상 종료" in err
+
+    # lock 정리됨
+    assert not paths.lock_file().exists()
+    # handoff 파일 없음
+    assert not (tmp_codingbot_home / "handoff.md").exists()
+    # 두 step 모두 실행되어 cycle 카운터 2
+    assert state.read()["cycles_this_run"] == 2
