@@ -27,6 +27,7 @@ codingbot = "codingbot.cli:main"
 testpaths = ["tests"]
 markers = [
     "e2e: real Claude Code smoke tests (manual, costs money)",
+    "e2e_auto: automated e2e via fake claude binary (no API cost)",
 ]
 
 [tool.hatch.build.targets.wheel]

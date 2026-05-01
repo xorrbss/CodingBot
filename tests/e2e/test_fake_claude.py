@@ -55,6 +55,8 @@ def test_fake_claude_step_writes_handoff_and_advances(tmp_path):
     r2 = _run_fake(scenario, home)
     assert r2.returncode == 0, r2.stderr
     assert (home / ".e2e_step").read_text(encoding="utf-8") == "2"
+    # step 0이 작성한 handoff.md가 그대로 보존됨 (fake_claude는 None 시 file 손대지 않음)
+    assert (home / "handoff.md").read_text(encoding="utf-8") == "다음 작업: foo"
 
 
 def test_fake_claude_out_of_range_exits_91(tmp_path):
