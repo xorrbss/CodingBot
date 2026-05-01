@@ -1,6 +1,6 @@
 # CodingBot 개발 핸드오프
 
-**작성일**: 2026-05-01 (14th update — 0.6.0 ship + push 완료)
+**작성일**: 2026-05-01 (15th update — 0.6.0 ship + push 완료 + README polish-c)
 **대상**: 다음 작업 세션
 
 ---
@@ -15,8 +15,9 @@
 - spec: `docs/superpowers/specs/2026-05-01-codingbot-0.6.0-design.md`
 - plan: `docs/superpowers/plans/2026-05-01-codingbot-0.6.0.md`
 - release notes: `docs/release-notes-0.6.0.md`
-- origin/master = local master = release commit — push 완료
-- 태그 `v0.6.0` (annotated) origin 등록됨
+- origin/master = local master = `183f241` (release commit `d77bbcc` + README polish-c `183f241`) — push 완료
+- 태그 `v0.6.0` (annotated, commit `d77bbcc`) origin 등록됨
+- polish-c 반영: README "진행 상황" 블록에 `codingbot status --watch` 예시 2줄 추가 (commit `183f241`). 코드/테스트 무변경.
 - 변경 파일:
   - `codingbot/cli.py`: `_print_status_body` 분리 + `_read_log_tail` 헬퍼 + `_watch_status` 루프 + status subparser 옵션 3 (`--watch`/`--interval`/`--tail`). 137 → 193 LOC.
   - `tests/unit/test_cli.py`: 신규 단위 4건 (`_read_log_tail` 2건 + watch 루프 1회 실행 2건).
@@ -230,13 +231,13 @@ c2957db  release: 0.1.1                                              ← v0.1.1 
 
 0.6.0 ship + push 완료. release 게이트 모두 닫힘. 다음 후보:
 
-### 0.6.x polish 후보
+### 0.6.x polish 후보 (남은 것)
 
-- e2e 수동 검증 (실제 Claude Code run + watch 화면 직접 확인).
-- watch 헤더에 lock pid 표시 (현재 비범위).
-- README의 status 섹션에 --watch 안내 추가.
+- (a) e2e 수동 검증 (실제 Claude Code run + watch 화면 직접 확인).
+- (b) watch 헤더에 lock pid 표시 (현재 비범위).
+- ~~(c) README의 status 섹션에 --watch 안내 추가~~ → commit `183f241`에서 완료.
 
-### 0.7.0 brainstorm 후보 (0.6.0 한 사이클 후 우선순위 재평가)
+### 0.7.0 brainstorm 후보 (사이클 가치 결정 → spec → plan)
 
 - risky_tool 차단 e2e (secret/install/priv hook 트랙).
 - judge 캐싱 (0.3.0 측정 데이터로 ROI 평가 후 결정).
@@ -328,9 +329,14 @@ hooks/handoff_or_continue  → handoff, heuristics, llm_judge, logger, state, tr
 
 다음 세션 시작 시:
 
-> "CodingBot **0.4.0 ship + push 완료** (e2e 자동화 사이클 — fake claude + 3 시나리오, 운영 코드 무수정. origin/master = HEAD, `v0.4.0` push됨).
-> 182/182 green, BLOCKED 0건, 모든 파일 ≤ 500 LOC. 0.4.x polish 갈까, 0.5.0 brainstorm 갈까, 아니면 다른 작업?"
+> "CodingBot **0.6.0 ship + push 완료** (S 사이클 — `status --watch [--interval N] [--tail N]`, 운영 코드 +56 LOC). origin/master = `183f241` (README polish 포함), `v0.6.0` push됨.
+> 202 pass + 1 skipped, BLOCKED 0건, 모든 파일 ≤ 500 LOC (cli.py 193).
+> HANDOFF (a)/(b), 0.6.0 spec/plan/release notes 모두 정합.
+>
+> 다음 후보 — 골라줘:
+> - 0.6.x polish: (a) e2e 수동 검증, (b) watch 헤더에 lock pid 표시
+> - 0.7.0 사이클 brainstorm: (d) risky_tool 차단 e2e [A], (e) judge 캐싱 [B2], (f) abnormal exit 카운터 + S9 [A/C], (g) metrics export [E], (h) 배포 패키징 [D]"
 
-선택지:
-- 0.4.x polish → e2e 수동 검증 또는 HANDOFF archive 정리
-- 0.5.0 brainstorm → transcript 시뮬레이션 e2e, judge 캐싱, metrics export, 배포(D) 등
+선택지 요약:
+- 0.6.x polish → 작은 단위 (a/b), 한 세션 안에서 마무리.
+- 0.7.0 brainstorm → 사이클 가치(A/B/C/D/E/S) 결정 + spec + plan + 다중 task. 한 세션 이상 가능.
