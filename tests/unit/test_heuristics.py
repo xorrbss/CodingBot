@@ -174,3 +174,53 @@ def test_secret_negative_branch_name_envfeature():
 def test_secret_negative_normal_file():
     assert _is_secret_segment(["cat", "README.md"]) is False
     assert _is_secret_segment(["echo", "hello"]) is False
+
+
+# install category
+
+from codingbot.heuristics import _is_install_segment
+
+
+def test_install_python():
+    assert _is_install_segment(["pip", "install", "requests"]) is True
+    assert _is_install_segment(["pip3", "install", "x"]) is True
+    assert _is_install_segment(["pipx", "install", "y"]) is True
+
+
+def test_install_node():
+    assert _is_install_segment(["npm", "install", "react"]) is True
+    assert _is_install_segment(["npm", "i", "lodash"]) is True
+    assert _is_install_segment(["npm", "add", "x"]) is True
+    assert _is_install_segment(["yarn", "add", "x"]) is True
+    assert _is_install_segment(["pnpm", "install"]) is True
+
+
+def test_install_system():
+    assert _is_install_segment(["apt", "install", "vim"]) is True
+    assert _is_install_segment(["apt-get", "install", "git"]) is True
+    assert _is_install_segment(["brew", "install", "tree"]) is True
+    assert _is_install_segment(["choco", "install", "nodejs"]) is True
+    assert _is_install_segment(["winget", "install", "Git"]) is True
+
+
+def test_install_other():
+    assert _is_install_segment(["gem", "install", "bundler"]) is True
+    assert _is_install_segment(["cargo", "install", "ripgrep"]) is True
+    assert _is_install_segment(["go", "install", "./..."]) is True
+
+
+def test_install_upgrade_update():
+    assert _is_install_segment(["pip", "upgrade", "pip"]) is True
+    assert _is_install_segment(["apt", "update"]) is True
+
+
+def test_install_negative_readonly():
+    assert _is_install_segment(["pip", "list"]) is False
+    assert _is_install_segment(["npm", "view", "react"]) is False
+    assert _is_install_segment(["brew", "search", "x"]) is False
+    assert _is_install_segment(["apt", "show", "vim"]) is False
+
+
+def test_install_negative_unrelated():
+    assert _is_install_segment(["echo", "pip install"]) is False
+    assert _is_install_segment(["git", "status"]) is False

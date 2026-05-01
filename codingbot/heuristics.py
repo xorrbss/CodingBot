@@ -103,6 +103,25 @@ def _is_secret_segment(argv):
     return False
 
 
+_INSTALL_MANAGERS = {
+    "pip", "pip3", "pipx",
+    "npm", "yarn", "pnpm",
+    "apt", "apt-get", "dpkg",
+    "brew",
+    "choco", "winget", "scoop",
+    "gem", "cargo", "go",
+}
+_INSTALL_SUBCOMMANDS = {"install", "add", "i", "upgrade", "update"}
+
+
+def _is_install_segment(argv):
+    if len(argv) < 2:
+        return False
+    if argv[0] not in _INSTALL_MANAGERS:
+        return False
+    return argv[1] in _INSTALL_SUBCOMMANDS
+
+
 _SAFE_BASH_PREFIXES = (
     "git status",
     "git log",
