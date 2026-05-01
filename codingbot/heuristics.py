@@ -75,6 +75,34 @@ def _split_bash_segments(cmd: str):
     return segments if segments else None
 
 
+_SECRET_FILE_PATTERNS = [
+    re.compile(r"(^|[/\\])\.env(\.|$)"),
+    re.compile(r"id_(rsa|ed25519|ecdsa|dsa)(\.pub)?$"),
+    re.compile(r"\.aws[/\\](credentials|config)$"),
+    re.compile(r"(^|[/\\])\.npmrc$"),
+    re.compile(r"(^|[/\\])\.pypirc$"),
+    re.compile(r"(^|[/\\])\.netrc$"),
+]
+_SECRET_VAR_PATTERN = re.compile(
+    r"\$\{?[A-Za-z_]*?(API[_-]?KEY|SECRET|TOKEN|PASSWORD)[A-Za-z_]*\}?"
+)
+_ENV_DUMP_COMMANDS = {"printenv", "env"}
+
+
+def _is_secret_segment(argv):
+    if not argv:
+        return False
+    if argv[0] in _ENV_DUMP_COMMANDS:
+        return len(argv) == 1 or argv[1].startswith("-")
+    for tok in argv:
+        for p in _SECRET_FILE_PATTERNS:
+            if p.search(tok):
+                return True
+        if _SECRET_VAR_PATTERN.search(tok):
+            return True
+    return False
+
+
 _SAFE_BASH_PREFIXES = (
     "git status",
     "git log",

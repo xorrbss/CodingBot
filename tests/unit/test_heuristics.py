@@ -131,3 +131,46 @@ def test_split_redirection_kept_in_segment():
     segs = _split_bash_segments("echo x > /tmp/y")
     assert segs is not None
     assert len(segs) >= 1
+
+
+# secret category
+
+from codingbot.heuristics import _is_secret_segment
+
+
+def test_secret_dotenv_file():
+    assert _is_secret_segment(["cat", ".env"]) is True
+    assert _is_secret_segment(["cat", ".env.local"]) is True
+    assert _is_secret_segment(["less", "src/.env"]) is True
+
+
+def test_secret_ssh_keys():
+    assert _is_secret_segment(["cat", "/home/u/.ssh/id_rsa"]) is True
+    assert _is_secret_segment(["cat", "~/.ssh/id_ed25519"]) is True
+
+
+def test_secret_cloud_creds():
+    assert _is_secret_segment(["cat", "~/.aws/credentials"]) is True
+    assert _is_secret_segment(["cat", "~/.aws/config"]) is True
+    assert _is_secret_segment(["cat", "~/.npmrc"]) is True
+    assert _is_secret_segment(["cat", "~/.netrc"]) is True
+
+
+def test_secret_env_dump():
+    assert _is_secret_segment(["printenv"]) is True
+    assert _is_secret_segment(["env"]) is True
+
+
+def test_secret_api_key_variable():
+    assert _is_secret_segment(["echo", "$API_KEY"]) is True
+    assert _is_secret_segment(["echo", "${SECRET}"]) is True
+    assert _is_secret_segment(["echo", "$ANTHROPIC_TOKEN"]) is True
+
+
+def test_secret_negative_branch_name_envfeature():
+    assert _is_secret_segment(["git", "diff", "main..env-feature"]) is False
+
+
+def test_secret_negative_normal_file():
+    assert _is_secret_segment(["cat", "README.md"]) is False
+    assert _is_secret_segment(["echo", "hello"]) is False
