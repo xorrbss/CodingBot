@@ -1,13 +1,13 @@
 # CodingBot 개발 핸드오프
 
-**작성일**: 2026-05-01 (10th update — 0.3.0 ship 완료, push 미실행)
+**작성일**: 2026-05-01 (11th update — 0.3.0 push 완료)
 **대상**: 다음 작업 세션
 
 ---
 
 ## (a) 지금까지 한 일
 
-### 0.3.0 ship 완료 (관측(metrics) 사이클 — state 카운터 12 + JudgeTimeout + status 섹션화)
+### 0.3.0 push 완료 (관측(metrics) 사이클 — state 카운터 12 + JudgeTimeout + status 섹션화)
 
 - 베이스: `v0.2.0` (`3434973`)
 - 사이클 가치: B — 관측 가능성 (0.2.0 안전망의 발동률 가시화)
@@ -15,8 +15,8 @@
 - spec: `docs/superpowers/specs/2026-05-01-codingbot-0.3.0-design.md`
 - plan: `docs/superpowers/plans/2026-05-01-codingbot-0.3.0.md`
 - release notes: `docs/release-notes-0.3.0.md`
-- 로컬 master = HEAD (이 release commit), origin push **미실행** (사용자 게이트 대기)
-- 태그 `v0.3.0` (annotated, 이 commit) 로컬에만 생성됨
+- origin/master = local master = `e4196b8` (release commit) — push 완료
+- 태그 `v0.3.0` (annotated, commit `e4196b8`) origin 등록됨
 
 #### 이번 사이클 작업 요약 (Task 1~8)
 
@@ -129,11 +129,7 @@ c2957db  release: 0.1.1                                              ← v0.1.1 
 
 ## (b) 다음에 할 일
 
-0.3.0 로컬 ship 완료. **origin push는 사용자 게이트 대기**. 그 후 후보:
-
-### 0.3.0 push (즉시)
-
-- 사용자 승인 받으면 `docs/push-procedure.md` 절차로 origin/master + tag v0.3.0 push.
+0.3.0 push까지 완료. release 게이트 모두 닫힘. 다음 후보(우선순위 낮음):
 
 ### 0.3.x polish 후보
 
@@ -218,10 +214,9 @@ hooks/handoff_or_continue  → handoff, heuristics, llm_judge, logger, state, tr
 
 다음 세션 시작 시:
 
-> "CodingBot **0.3.0 로컬 ship 완료** (관측(metrics) 사이클 — state 카운터 12 + JudgeTimeout + status 섹션화). origin push는 사용자 게이트 대기.
-> 176/176 green, BLOCKED 0건, 모든 파일 ≤ 500 LOC. push 진행할까, 0.3.x polish 갈까, 0.4.0 brainstorm 갈까?"
+> "CodingBot **0.3.0 ship + push 완료** (관측(metrics) 사이클 — state 카운터 12 + JudgeTimeout + status 섹션화. origin/master = HEAD, `v0.3.0` push됨).
+> 176/176 green, BLOCKED 0건, 모든 파일 ≤ 500 LOC. 0.3.x polish 갈까, 0.4.0 brainstorm 갈까, 아니면 다른 작업?"
 
 선택지:
-- 0.3.0 push → `docs/push-procedure.md` 절차로 origin/master + tag v0.3.0 push
 - 0.3.x polish → e2e 수동 검증 또는 HANDOFF archive 정리
 - 0.4.0 brainstorm → e2e 자동화, judge 캐싱, metrics export, 배포(D) 등
