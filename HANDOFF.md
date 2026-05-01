@@ -1,11 +1,46 @@
 # CodingBot 개발 핸드오프
 
-**작성일**: 2026-05-01 (9th update — 0.2.0 push 완료)
+**작성일**: 2026-05-01 (10th update — 0.3.0 ship 완료, push 미실행)
 **대상**: 다음 작업 세션
 
 ---
 
 ## (a) 지금까지 한 일
+
+### 0.3.0 ship 완료 (관측(metrics) 사이클 — state 카운터 12 + JudgeTimeout + status 섹션화)
+
+- 베이스: `v0.2.0` (`3434973`)
+- 사이클 가치: B — 관측 가능성 (0.2.0 안전망의 발동률 가시화)
+- 범위: state.json 카운터 12 신규 + record_* 6 함수 + JudgeTimeout(JudgeError) 서브클래스 + auto_approve/handoff_or_continue 카운터 호출 + cli status 섹션화
+- spec: `docs/superpowers/specs/2026-05-01-codingbot-0.3.0-design.md`
+- plan: `docs/superpowers/plans/2026-05-01-codingbot-0.3.0.md`
+- release notes: `docs/release-notes-0.3.0.md`
+- 로컬 master = HEAD (이 release commit), origin push **미실행** (사용자 게이트 대기)
+- 태그 `v0.3.0` (annotated, 이 commit) 로컬에만 생성됨
+
+#### 이번 사이클 작업 요약 (Task 1~8)
+
+| Task | 내용 | 커밋 |
+|---|---|---|
+| 1 | `_initial_state` 12 신규 카운터 키 + 회귀 1 | `1dbec11` |
+| 2 | `record_*` 6 함수 (`auto_approve_by`, `auto_defer_by`, `stop_outcome`, `judge_call/timeout/error`) + 검증 + 회귀 10 | `7b7f129` |
+| 2b | PEP 8: pytest import top으로 이동 | `37591cf` |
+| 3 | `JudgeTimeout(JudgeError)` 서브클래스 + `APITimeoutError` 매핑 + 회귀 3 | `c317449` |
+| 4 | `auto_approve` hook: source-별 카운터 + JudgeTimeout 분기 + 회귀 6 | `e2a9918` |
+| 5 | `handoff_or_continue` hook: outcome 카운터 (`_OUTCOME_TO_COUNTER` dict) + JudgeTimeout 분기 + 회귀 5 | `978f1f2` |
+| 5b | block_unstuck 회귀 추가 + import 정리 | `24f55c1` |
+| 6 | `cli status` 5 섹션 (Status/Cycle/Decisions PreToolUse/Decisions Stop/Judge/Config) + 회귀 2 | `f79d2cd` |
+| 7 | grand pass: 176 + 1 skipped, LOC max 282, BLOCKED 0 | (no commit) |
+| 8 | release: pyproject 0.3.0 + release notes + HANDOFF + tag | (이 commit) |
+
+#### 0.2.0 → 0.3.0에 포함된 변경 요약
+
+- state: `_initial_state` 12 키 추가 (auto_approve_by_*, auto_defer_by_*, stop_*, judge_*) + `record_*` 6 함수 + 검증 튜플
+- llm_judge: `JudgeTimeout(JudgeError)` 신규 + `_call`에서 `anthropic.APITimeoutError` isinstance 매핑
+- hooks/auto_approve: `_approve`/`_defer_to_user`에 source-별 카운터, judge 호출 직전 `record_judge_call`, except 분기 timeout/error 분리
+- hooks/handoff_or_continue: `_OUTCOME_TO_COUNTER` dict, `_block`/`_allow_stop`에 outcome 카운터, judge 분기 동일 패턴
+- cli: `_cmd_status` 5 섹션화, 12 신규 카운터 모두 노출
+- public API breaking change 없음. `JudgeError`로 catch하면 `JudgeTimeout`도 잡힘 (하위 호환).
 
 ### 0.2.0 push 완료 (신뢰성 사이클 — A2 위험 패턴 + A3 fallback)
 
@@ -84,27 +119,33 @@ c2957db  release: 0.1.1                                              ← v0.1.1 
 
 ### 테스트 현황
 
-- **148 pass + 1 skipped** (0.1.2 시점 99 → 0.2.0에서 +49: split 10 + secret 7 + install 7 + priv 6 + chain bypass 11 + config 4 + llm_judge 3 + runner 1)
+- **176 pass + 1 skipped** (0.2.0 시점 148 → 0.3.0에서 +28: state 11 + llm_judge 3 + auto_approve 6 + handoff_or_continue 6 + cli 2)
+- 이전: 148 pass + 1 skipped (0.1.2 시점 99 → 0.2.0에서 +49: split 10 + secret 7 + install 7 + priv 6 + chain bypass 11 + config 4 + llm_judge 3 + runner 1)
 - e2e는 여전히 manual trigger only (`-m e2e`)
-- `// TODO`, `# TODO` grep 시 코드 BLOCKED **0건**
-- 모든 코드 파일 ≤ 500 LOC (max `heuristics.py` 282)
+- `BLOCKED` grep 시 코드 **0건**
+- 모든 코드 파일 ≤ 500 LOC (max `heuristics.py` 282, 다음 `state.py` 173)
 
 ---
 
 ## (b) 다음에 할 일
 
-0.2.0 push까지 완료. release 게이트 모두 닫힘. 다음 후보(우선순위 낮음):
+0.3.0 로컬 ship 완료. **origin push는 사용자 게이트 대기**. 그 후 후보:
 
-### 0.2.x 추가 polish 후보
+### 0.3.0 push (즉시)
 
-- e2e 수동 검증 (실제 Claude Code run에서 신규 카테고리 동작 확인 — 비용 발생).
+- 사용자 승인 받으면 `docs/push-procedure.md` 절차로 origin/master + tag v0.3.0 push.
+
+### 0.3.x polish 후보
+
+- e2e 수동 검증 (실제 Claude Code run에서 카운터 누적 확인 — 비용 발생).
 - HANDOFF의 "지금까지 한 일" 항목이 누적되고 있어 다음 사이클에서 archive 정리 검토.
 
-### 0.3.0 brainstorm 후보
+### 0.4.0 brainstorm 후보
 
+- e2e 자동 검증 골격 (mock Claude 또는 cassette)
+- judge 캐싱 (0.3.0 측정 데이터로 ROI 평가 후 결정)
+- 외부 metrics export / dashboard
 - D 가치(배포/패키징): pip install codingbot, GitHub Releases 자동화 등
-- B 가치(확장성): user-defined matcher plugin, hook 설정 GUI 등
-- 기존 BLOCKED 0건 — 우선순위 정하기 시점.
 
 ---
 
@@ -133,6 +174,7 @@ c2957db  release: 0.1.1                                              ← v0.1.1 
 - `llm_judge.py`에서 `import anthropic`은 `_client()` 안 lazy. **0.2.0**: `messages.create(timeout=cfg.judge_timeout_secs)` + `JudgeError` `from e` 일관화
 - (0.1.2) `transcript` 모듈 schema 정공법
 - **0.2.0**: `heuristics.classify_tool_call` 외부 동일, 내부는 segment 기반. `Config`에 `judge_timeout_secs:int=15` + `risky_categories:dict={secret,install,priv:True}` 신규
+- **0.3.0**: `state` 모듈에 `record_auto_approve_by(judge)`, `record_auto_defer_by(judge)`, `record_stop_outcome(outcome)`, `record_judge_call()`, `record_judge_timeout()`, `record_judge_error()` 신규. judge/outcome 인자는 검증 튜플 위반 시 `ValueError`. `state.read()`에 카운터 키 12개 추가 (default 0). `llm_judge`에 `JudgeTimeout(JudgeError)` 서브클래스 + `_call`이 `anthropic.APITimeoutError`를 명시 매핑. 외부 인터페이스 breaking change 없음.
 
 ### 모듈 의존 그래프 (변경 없음)
 
@@ -151,7 +193,7 @@ install_hooks   (leaf)
 hooks/auto_approve         → heuristics, llm_judge, logger, state, transcript
 hooks/handoff_or_continue  → handoff, heuristics, llm_judge, logger, state, transcript
 ```
-모든 파일 ≤ 500 LOC. 0.2.0에서 `heuristics.py` 103 → 282 (3 카테고리 매처 + segment 분해 추가).
+모든 파일 ≤ 500 LOC. 0.2.0에서 `heuristics.py` 103 → 282. 0.3.0에서 `state.py` 107 → 173, `cli.py` 116 → 137, hooks 약간 증가.
 
 ### 테스트 격리 패턴 (변경 없음)
 
@@ -163,9 +205,11 @@ hooks/handoff_or_continue  → handoff, heuristics, llm_judge, logger, state, tr
 
 - spec (0.1.x): `docs/superpowers/specs/2026-04-30-codingbot-design.md`
 - spec (0.2.0): `docs/superpowers/specs/2026-05-01-codingbot-0.2.0-design.md`
+- spec (0.3.0): `docs/superpowers/specs/2026-05-01-codingbot-0.3.0-design.md`
 - plan (0.1.x): `docs/superpowers/plans/2026-04-30-codingbot.md` (historical)
 - plan (0.2.0): `docs/superpowers/plans/2026-05-01-codingbot-0.2.0.md`
-- release notes: `docs/release-notes-0.1.1.md`, `docs/release-notes-0.1.2.md`, `docs/release-notes-0.2.0.md`
+- plan (0.3.0): `docs/superpowers/plans/2026-05-01-codingbot-0.3.0.md`
+- release notes: `docs/release-notes-0.1.1.md`, `docs/release-notes-0.1.2.md`, `docs/release-notes-0.2.0.md`, `docs/release-notes-0.3.0.md`
 - push procedure: `docs/push-procedure.md`
 
 ---
@@ -174,9 +218,10 @@ hooks/handoff_or_continue  → handoff, heuristics, llm_judge, logger, state, tr
 
 다음 세션 시작 시:
 
-> "CodingBot **0.2.0 ship + push 완료** (신뢰성 사이클 — bash segment 분류, llm_judge timeout, runner CLI 검사. origin/master = HEAD, `v0.2.0` push됨).
-> 148/148 green, BLOCKED 0건, 모든 파일 ≤ 500 LOC. 0.2.x polish 더 갈까, 0.3.0 brainstorm 갈까, 아니면 다른 작업?"
+> "CodingBot **0.3.0 로컬 ship 완료** (관측(metrics) 사이클 — state 카운터 12 + JudgeTimeout + status 섹션화). origin push는 사용자 게이트 대기.
+> 176/176 green, BLOCKED 0건, 모든 파일 ≤ 500 LOC. push 진행할까, 0.3.x polish 갈까, 0.4.0 brainstorm 갈까?"
 
 선택지:
-- 0.2.x polish → e2e 수동 검증 또는 HANDOFF archive 정리
-- 0.3.0 brainstorm → D(배포), B(확장성), 기타 가치 후보 정리
+- 0.3.0 push → `docs/push-procedure.md` 절차로 origin/master + tag v0.3.0 push
+- 0.3.x polish → e2e 수동 검증 또는 HANDOFF archive 정리
+- 0.4.0 brainstorm → e2e 자동화, judge 캐싱, metrics export, 배포(D) 등
