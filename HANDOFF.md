@@ -1,6 +1,6 @@
 # CodingBot 개발 핸드오프
 
-**작성일**: 2026-05-01 (12th update — 0.4.0 ship 완료)
+**작성일**: 2026-05-01 (12th update — 0.4.0 ship + push 완료)
 **대상**: 다음 작업 세션
 
 ---
@@ -15,7 +15,8 @@
 - spec: `docs/superpowers/specs/2026-05-01-codingbot-0.4.0-design.md`
 - plan: `docs/superpowers/plans/2026-05-01-codingbot-0.4.0.md`
 - release notes: `docs/release-notes-0.4.0.md`
-- 태그 `v0.4.0` (annotated, 이 commit) 로컬 생성. push는 별도 게이트.
+- origin/master = local master = `5c5d961` (release commit) — push 완료
+- 태그 `v0.4.0` (annotated, commit `5c5d961`) origin 등록됨
 
 #### 이번 사이클 작업 요약 (Task 1~8)
 
@@ -251,10 +252,9 @@ hooks/handoff_or_continue  → handoff, heuristics, llm_judge, logger, state, tr
 
 다음 세션 시작 시:
 
-> "CodingBot **0.4.0 ship 완료** (e2e 자동화 사이클 — fake claude + 3 시나리오, 운영 코드 무수정).
-> 182/182 green, BLOCKED 0건, 모든 파일 ≤ 500 LOC. push 갈까, 0.4.x polish 갈까, 0.5.0 brainstorm 갈까?"
+> "CodingBot **0.4.0 ship + push 완료** (e2e 자동화 사이클 — fake claude + 3 시나리오, 운영 코드 무수정. origin/master = HEAD, `v0.4.0` push됨).
+> 182/182 green, BLOCKED 0건, 모든 파일 ≤ 500 LOC. 0.4.x polish 갈까, 0.5.0 brainstorm 갈까, 아니면 다른 작업?"
 
 선택지:
-- push → `docs/push-procedure.md` 따라 `git push origin master --follow-tags` (사용자 승인 게이트)
 - 0.4.x polish → e2e 수동 검증 또는 HANDOFF archive 정리
 - 0.5.0 brainstorm → transcript 시뮬레이션 e2e, judge 캐싱, metrics export, 배포(D) 등
