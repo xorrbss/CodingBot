@@ -65,6 +65,20 @@ def test_compute_timeline_skips_malformed_lines(tmp_codingbot_home):
     assert buckets[-1]["judge_call"] == 1
 
 
+def test_compute_timeline_skips_naive_timestamp_lines(tmp_codingbot_home):
+    """tz suffix 없는 ts는 잘못된 라인으로 간주하고 silently skip."""
+    from codingbot import serve
+    paths.log_file().write_text(
+        '{"event":"auto_approve","judge":"llm","ts":"2024-01-01T00:00:00","level":"info"}\n'
+        + _line("auto_approve", judge="llm", _offset=-30) + "\n",
+        encoding="utf-8",
+    )
+    buckets = serve._compute_timeline(window_sec=120, bucket_sec=60)
+    # 정상 라인 1개만 카운트, naive ts는 무시
+    assert sum(b["judge_call"] for b in buckets) == 1
+    assert buckets[-1]["judge_call"] == 1
+
+
 def test_compute_timeline_empty_log(tmp_codingbot_home):
     from codingbot import serve
     # log 파일 자체가 없음

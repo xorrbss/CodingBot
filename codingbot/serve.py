@@ -14,13 +14,16 @@ _JUDGE_LLM_EVENTS = {"auto_approve", "auto_defer_to_user", "stop_hook"}
 
 
 def _parse_ts(s: str) -> Optional[datetime]:
-    """ISO8601(Z) → aware datetime. 실패 시 None."""
+    """ISO8601(Z) → aware datetime. 실패 또는 tz 없으면 None."""
     try:
         if s.endswith("Z"):
             s = s[:-1] + "+00:00"
-        return datetime.fromisoformat(s)
+        dt = datetime.fromisoformat(s)
     except (ValueError, TypeError):
         return None
+    if dt.tzinfo is None:
+        return None
+    return dt
 
 
 def _compute_timeline(window_sec: int, bucket_sec: int = 60) -> List[dict]:
@@ -29,6 +32,7 @@ def _compute_timeline(window_sec: int, bucket_sec: int = 60) -> List[dict]:
     반환: `[{"t": iso8601, "judge_call": int, "judge_timeout": int, "judge_error": int}, ...]`
     bucket 수 = window_sec // bucket_sec. 빈 bucket도 0으로 채움.
     오래된 라인 / 깨진 라인 / log 파일 부재 모두 안전.
+    반환 dict의 "t"는 bucket의 종료 시각 (right edge).
     """
     n_buckets = window_sec // bucket_sec
     now = datetime.now(timezone.utc)
