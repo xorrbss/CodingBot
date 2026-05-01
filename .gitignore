@@ -24,3 +24,6 @@ venv/
 
 # Claude Code local artifacts
 .claude/
+
+# Brainstorming visual companion (mockups, server state)
+.superpowers/

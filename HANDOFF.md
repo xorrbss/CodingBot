@@ -1,6 +1,6 @@
 # CodingBot 개발 핸드오프
 
-**작성일**: 2026-05-01 (16th update — 0.7.0 ship 준비 — `codingbot serve` W 사이클)
+**작성일**: 2026-05-02 (16th update — 0.7.0 ship + push 완료 — `codingbot serve` W 사이클)
 **대상**: 다음 작업 세션
 
 ---
