@@ -195,3 +195,32 @@ def test_s12_chain_bypass_still_blocked(hook_env, transcript_jsonl_factory):
     assert counters.get("auto_defer_by_heuristic", 0) == 1
     assert counters.get("auto_approve_count", 0) == 0  # 첫 segment "echo ok"가 approve 분기로 새지 않음
     assert counters.get("judge_call_total", 0) == 0
+
+
+def test_s13_safe_bash_still_approves(hook_env, transcript_jsonl_factory):
+    """S13 (대조): Bash `ls` → heuristic safe → _approve, defer 카운터 미증가.
+
+    risky 분기 회귀와 함께 false positive(안전 명령이 defer로 새는 것) 회귀도
+    함께 닫는다.
+    """
+    transcript = transcript_jsonl_factory([
+        {"role": "assistant", "text": "임의 텍스트"},
+    ])
+
+    r = run_pre_tool_use(
+        stdin_dict={
+            "tool_name": "Bash",
+            "tool_input": {"command": "ls"},
+            "transcript_path": str(transcript),
+        },
+        env=hook_env(),
+    )
+
+    assert r.exit_code == 0
+    assert r.decision is not None
+    assert r.decision["decision"] == "approve"
+    counters = state.read()
+    assert counters.get("auto_approve_count", 0) == 1
+    assert counters.get("auto_approve_by_heuristic", 0) == 1
+    assert counters.get("auto_defer_by_heuristic", 0) == 0
+    assert counters.get("judge_call_total", 0) == 0
