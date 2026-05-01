@@ -1,8 +1,4 @@
 """runner loop e2e (S1/S2/S3) — Task 2 임시 fixture 검증부터."""
-import os
-import subprocess
-from pathlib import Path
-
 import pytest
 
 
