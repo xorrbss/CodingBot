@@ -74,3 +74,19 @@ def _compute_timeline(window_sec: int, bucket_sec: int = 60) -> List[dict]:
             buckets[idx]["judge_error"] += 1
 
     return buckets
+
+
+def _read_lock_pid() -> Optional[int]:
+    """`paths.lock_file()` 의 PID를 int로. 부재 또는 비숫자면 None."""
+    p = paths.lock_file()
+    if not p.exists():
+        return None
+    try:
+        return int(p.read_text(encoding="utf-8").strip())
+    except (ValueError, OSError):
+        return None
+
+
+def _read_stop_signal() -> bool:
+    """`paths.stop_signal_file()` 존재 여부."""
+    return paths.stop_signal_file().exists()

@@ -86,3 +86,27 @@ def test_compute_timeline_empty_log(tmp_codingbot_home):
     buckets = serve._compute_timeline(window_sec=180, bucket_sec=60)
     assert len(buckets) == 3
     assert all(b["judge_call"] == 0 and b["judge_timeout"] == 0 and b["judge_error"] == 0 for b in buckets)
+
+
+def test_read_lock_pid_returns_int_when_file_exists(tmp_codingbot_home):
+    from codingbot import serve
+    paths.lock_file().write_text("13422", encoding="utf-8")
+    assert serve._read_lock_pid() == 13422
+
+
+def test_read_lock_pid_returns_none_when_missing(tmp_codingbot_home):
+    from codingbot import serve
+    assert serve._read_lock_pid() is None
+
+
+def test_read_lock_pid_returns_none_for_corrupt_content(tmp_codingbot_home):
+    from codingbot import serve
+    paths.lock_file().write_text("not-a-pid", encoding="utf-8")
+    assert serve._read_lock_pid() is None
+
+
+def test_read_stop_signal_reflects_file_presence(tmp_codingbot_home):
+    from codingbot import serve
+    assert serve._read_stop_signal() is False
+    paths.stop_signal_file().touch()
+    assert serve._read_stop_signal() is True
