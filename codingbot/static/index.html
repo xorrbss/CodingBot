@@ -1,2 +1,172 @@
-<!doctype html><meta charset="utf-8"><title>codingbot</title>
-<p>placeholder — replaced in Task 6</p>
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>CodingBot Dashboard</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body {
+      font-family: ui-monospace, "JetBrains Mono", Menlo, Consolas, monospace;
+      margin: 0; padding: 12px; font-size: 13px; line-height: 1.4;
+    }
+    .alert {
+      position: sticky; top: 0; z-index: 10;
+      padding: 8px 12px; border-radius: 4px; margin-bottom: 12px;
+      background: rgba(0,0,0,0.06); border: 1px solid rgba(0,0,0,0.12);
+    }
+    .alert.warn { background: rgba(204, 0, 0, 0.15); border-color: rgba(204, 0, 0, 0.5); }
+    .alert.disconnected { background: rgba(102, 102, 102, 0.2); border-color: rgba(102, 102, 102, 0.6); }
+    .grid { display: grid; grid-template-columns: 2fr 3fr; gap: 12px; }
+    .card { padding: 10px 12px; border: 1px solid rgba(0,0,0,0.15); border-radius: 4px; background: rgba(255,255,255,0.04); }
+    .card h3 { margin: 0 0 6px 0; font-size: 11px; text-transform: uppercase; opacity: 0.7; font-weight: 600; }
+    .card .v { font-size: 18px; font-weight: 700; }
+    .card + .card { margin-top: 8px; }
+    .right { display: flex; flex-direction: column; gap: 8px; }
+    .log { max-height: 360px; overflow: auto; font-size: 11px; opacity: 0.85; white-space: pre; }
+    svg.timeline { width: 100%; height: 80px; display: block; }
+    .legend { font-size: 10px; opacity: 0.65; margin-top: 4px; }
+    .legend .sw { display: inline-block; width: 10px; height: 10px; vertical-align: middle; margin-right: 3px; border-radius: 2px; }
+  </style>
+</head>
+<body>
+  <div id="alert" class="alert">connecting…</div>
+
+  <div class="grid">
+    <div class="left">
+      <div class="card">
+        <h3>Cycle</h3>
+        <div class="v" id="cycles">–</div>
+        <div>auto_approve <span id="auto_approve">–</span> · auto_continue <span id="auto_continue">–</span></div>
+      </div>
+      <div class="card">
+        <h3>PreToolUse</h3>
+        <div>approve heur <span id="ap_heur">–</span> / llm <span id="ap_llm">–</span></div>
+        <div>defer rule <span id="df_rule">–</span> / heur <span id="df_heur">–</span> / llm <span id="df_llm">–</span></div>
+      </div>
+      <div class="card">
+        <h3>Stop</h3>
+        <div>continue <span id="st_cont">–</span> · handoff <span id="st_hand">–</span> · unstuck <span id="st_unst">–</span> · allow <span id="st_allow">–</span></div>
+      </div>
+      <div class="card">
+        <h3>Judge</h3>
+        <div>call <span id="j_call">–</span> · timeout <span id="j_to">–</span> · error <span id="j_err">–</span></div>
+      </div>
+    </div>
+
+    <div class="right">
+      <div class="card">
+        <h3>Judge timeline (last 30 min)</h3>
+        <svg class="timeline" id="tl" viewBox="0 0 300 80" preserveAspectRatio="none"></svg>
+        <div class="legend">
+          <span class="sw" style="background:#6aa84f"></span>call
+          <span class="sw" style="background:#e69138"></span>timeout
+          <span class="sw" style="background:#cc0000"></span>error
+        </div>
+      </div>
+      <div class="card">
+        <h3>Last log</h3>
+        <div class="log" id="log">–</div>
+      </div>
+    </div>
+  </div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+
+async function fetchJSON(url) {
+  const r = await fetch(url, { cache: "no-store" });
+  if (!r.ok) throw new Error(r.status);
+  return r.json();
+}
+
+function renderAlert(s) {
+  const a = $("alert");
+  if (!s) {
+    a.className = "alert disconnected";
+    a.textContent = "disconnected — retrying…";
+    return;
+  }
+  const lock = s.lock_pid != null ? `runner lock: pid ${s.lock_pid}` : "runner lock: none";
+  const stop = s.stop_signal ? "stop signal: YES" : "stop signal: no";
+  a.textContent = `${stop} · ${lock} · ${s.ts}`;
+  a.className = "alert" + (s.stop_signal || s.lock_pid != null ? " warn" : "");
+}
+
+function renderState(s) {
+  $("cycles").textContent = s.cycles_this_run ?? 0;
+  $("auto_approve").textContent = s.auto_approve_count ?? 0;
+  $("auto_continue").textContent = s.auto_continue_count ?? 0;
+  $("ap_heur").textContent = s.auto_approve_by_heuristic ?? 0;
+  $("ap_llm").textContent = s.auto_approve_by_llm ?? 0;
+  $("df_rule").textContent = s.auto_defer_by_rule ?? 0;
+  $("df_heur").textContent = s.auto_defer_by_heuristic ?? 0;
+  $("df_llm").textContent = s.auto_defer_by_llm ?? 0;
+  $("st_cont").textContent = s.stop_block_continue ?? 0;
+  $("st_hand").textContent = s.stop_block_handoff ?? 0;
+  $("st_unst").textContent = s.stop_block_unstuck ?? 0;
+  $("st_allow").textContent = s.stop_allow ?? 0;
+  $("j_call").textContent = s.judge_call_total ?? 0;
+  $("j_to").textContent = s.judge_timeout_total ?? 0;
+  $("j_err").textContent = s.judge_error_total ?? 0;
+}
+
+function renderLog(payload) {
+  $("log").textContent = (payload.lines || []).join("\n") || "(empty)";
+}
+
+function renderTimeline(payload) {
+  const svg = $("tl");
+  svg.innerHTML = "";
+  const buckets = payload.buckets || [];
+  const n = buckets.length || 1;
+  const w = 300 / n;
+  let max = 1;
+  for (const b of buckets) {
+    const total = b.judge_call + b.judge_timeout + b.judge_error;
+    if (total > max) max = total;
+  }
+  buckets.forEach((b, i) => {
+    const x = i * w;
+    const heights = [
+      { v: b.judge_call,    color: "#6aa84f" },
+      { v: b.judge_timeout, color: "#e69138" },
+      { v: b.judge_error,   color: "#cc0000" },
+    ];
+    let yCursor = 80;
+    for (const seg of heights) {
+      if (seg.v <= 0) continue;
+      const h = (seg.v / max) * 80;
+      const r = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+      r.setAttribute("x", x.toFixed(2));
+      r.setAttribute("y", (yCursor - h).toFixed(2));
+      r.setAttribute("width", (w * 0.9).toFixed(2));
+      r.setAttribute("height", h.toFixed(2));
+      r.setAttribute("fill", seg.color);
+      svg.appendChild(r);
+      yCursor -= h;
+    }
+  });
+}
+
+async function tickState() {
+  try {
+    const s = await fetchJSON("/api/state");
+    renderAlert(s);
+    renderState(s);
+  } catch (e) { renderAlert(null); }
+}
+async function tickLog() {
+  try { renderLog(await fetchJSON("/api/log/tail?n=50")); } catch (e) {}
+}
+async function tickTimeline() {
+  try { renderTimeline(await fetchJSON("/api/timeline?window=1800")); } catch (e) {}
+}
+
+tickState(); tickLog(); tickTimeline();
+setInterval(tickState, 1000);
+setInterval(tickLog, 2000);
+setInterval(tickTimeline, 5000);
+</script>
+</body>
+</html>
