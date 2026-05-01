@@ -10,6 +10,10 @@ class JudgeError(Exception):
     """LLM 호출/파싱 실패. 호출 측에서 안전 폴백."""
 
 
+class JudgeTimeout(JudgeError):
+    """API 호출 타임아웃. JudgeError의 특수 케이스 — 하위 호환을 위해 서브클래스."""
+
+
 _TOOL_SAFETY_SYSTEM = (
     "You are a safety classifier for a coding agent's tool calls. "
     "Output ONLY a JSON object with keys 'decision' (string: 'approve' or 'ask') "
@@ -52,6 +56,9 @@ def _call(system: str, user: str) -> str:
             messages=[{"role": "user", "content": user}],
         )
     except Exception as e:
+        import anthropic  # _client()에서 이미 import된 상태이므로 추가 비용 없음
+        if isinstance(e, anthropic.APITimeoutError):
+            raise JudgeTimeout(f"API call timed out after {cfg.judge_timeout_secs}s") from e
         raise JudgeError(f"API call failed: {e}") from e
     try:
         return resp.content[0].text

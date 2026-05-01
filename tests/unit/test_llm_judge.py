@@ -84,3 +84,28 @@ def test_api_error_chains_cause(tmp_codingbot_home, mock_anthropic, monkeypatch)
     with pytest.raises(llm_judge.JudgeError) as exc_info:
         llm_judge.evaluate_tool_safety("Bash", {"command": "x"}, "")
     assert exc_info.value.__cause__ is underlying
+
+
+def test_judge_timeout_is_subclass_of_judge_error():
+    """JudgeTimeout은 JudgeError의 서브클래스 (하위 호환)."""
+    assert issubclass(llm_judge.JudgeTimeout, llm_judge.JudgeError)
+
+
+def test_api_timeout_raises_judge_timeout(tmp_codingbot_home, mock_anthropic, monkeypatch):
+    """anthropic.APITimeoutError → JudgeTimeout (JudgeError 아닌 더 구체)."""
+    import anthropic
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "fake")
+    # APITimeoutError는 httpx.Request 인자 필요. mock으로 우회.
+    timeout_exc = anthropic.APITimeoutError(request=type("R", (), {})())
+    mock_anthropic.messages.create.side_effect = timeout_exc
+    with pytest.raises(llm_judge.JudgeTimeout):
+        llm_judge.evaluate_tool_safety("Bash", {"command": "x"}, "")
+
+
+def test_non_timeout_exception_raises_judge_error_not_timeout(tmp_codingbot_home, mock_anthropic, monkeypatch):
+    """일반 Exception은 JudgeError로만 raise (JudgeTimeout 아님)."""
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "fake")
+    mock_anthropic.messages.create.side_effect = RuntimeError("rate_limit")
+    with pytest.raises(llm_judge.JudgeError) as exc_info:
+        llm_judge.evaluate_tool_safety("Bash", {"command": "x"}, "")
+    assert not isinstance(exc_info.value, llm_judge.JudgeTimeout)
