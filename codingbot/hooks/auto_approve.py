@@ -25,12 +25,14 @@ def _read_recent_context(transcript_path: str, n_chars: int = 1500) -> str:
 
 
 def _approve(reason: str, judge: str) -> None:
-    state.record_auto_approve()
+    state.record_auto_approve()  # 0.1.x 호환
+    state.record_auto_approve_by(judge)  # 0.3.0
     logger.info("auto_approve", decision="approve", judge=judge, reason=reason)
     print(json.dumps({"decision": "approve", "reason": reason}))
 
 
 def _defer_to_user(why: str, judge: str) -> None:
+    state.record_auto_defer_by(judge)  # 0.3.0
     logger.info("auto_defer_to_user", judge=judge, reason=why)
 
 
@@ -54,10 +56,17 @@ def main() -> int:
             _defer_to_user(f"risky ({tool_name})", judge="heuristic")
             return 0
 
+        ctx = _read_recent_context(transcript_path)
+        state.record_judge_call()
         try:
-            ctx = _read_recent_context(transcript_path)
             result = llm_judge.evaluate_tool_safety(tool_name, tool_input, ctx)
+        except llm_judge.JudgeTimeout as e:
+            state.record_judge_timeout()
+            logger.warn("llm_timeout", hook="auto_approve", error=str(e))
+            _defer_to_user("llm_timeout", judge="llm")
+            return 0
         except llm_judge.JudgeError as e:
+            state.record_judge_error()
             logger.warn("llm_api_error", hook="auto_approve", error=str(e))
             _defer_to_user("llm_failed", judge="llm")
             return 0
