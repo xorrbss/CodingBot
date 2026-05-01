@@ -3,6 +3,8 @@ enabled: true
 time_limit_minutes: 30
 max_cycles_per_run: 50
 judge_model: "claude-haiku-4-5-20251001"
+# LLM judge call timeout (seconds). 0 또는 음수면 timeout 없이 호출.
+judge_timeout_secs: 15
 api_key_env: "ANTHROPIC_API_KEY"
 safe_tools:
   - Read
@@ -19,4 +21,12 @@ risky_patterns:
   - ":(){:|:&};:"
   - "mkfs"
   - "dd if="
+# 새 카테고리 매처 on/off (0.2.0+).
+# secret: .env/ssh/aws creds/$API_KEY 등 노출 위험
+# install: pip/npm/apt/brew install
+# priv: sudo/chmod 777/chown root 등 권한 상승
+risky_categories:
+  secret: true
+  install: true
+  priv: true
 log_level: info

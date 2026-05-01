@@ -39,3 +39,33 @@ def test_partial_overrides_keep_defaults_for_lists(tmp_codingbot_home):
     cfg = config.load()
     assert cfg.safe_tools == ["Read", "MyCustomTool"]
     assert "rm -rf" in cfg.risky_patterns  # 기본값 유지
+
+
+def test_judge_timeout_default(tmp_codingbot_home):
+    cfg = config.load()
+    assert cfg.judge_timeout_secs == 15
+
+
+def test_judge_timeout_override(tmp_codingbot_home):
+    paths.config_file().write_text("judge_timeout_secs: 30\n", encoding="utf-8")
+    config.load.cache_clear()
+    cfg = config.load()
+    assert cfg.judge_timeout_secs == 30
+
+
+def test_risky_categories_default(tmp_codingbot_home):
+    cfg = config.load()
+    assert cfg.risky_categories == {
+        "secret": True, "install": True, "priv": True,
+    }
+
+
+def test_risky_categories_partial_override(tmp_codingbot_home):
+    paths.config_file().write_text(
+        "risky_categories:\n  secret: false\n",
+        encoding="utf-8",
+    )
+    config.load.cache_clear()
+    cfg = config.load()
+    assert cfg.risky_categories.get("secret") is False
+    assert cfg.risky_categories.get("install", True) is True

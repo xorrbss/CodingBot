@@ -1,7 +1,7 @@
 """사용자 설정 로딩. YAML + 기본값."""
 from dataclasses import dataclass, field
 from functools import lru_cache
-from typing import List
+from typing import Any, Dict, List
 
 import yaml
 
@@ -28,9 +28,13 @@ class Config:
     time_limit_minutes: int = 30
     max_cycles_per_run: int = 50
     judge_model: str = "claude-haiku-4-5-20251001"
+    judge_timeout_secs: int = 15
     api_key_env: str = "ANTHROPIC_API_KEY"
     safe_tools: List[str] = field(default_factory=lambda: list(DEFAULT_SAFE_TOOLS))
     risky_patterns: List[str] = field(default_factory=lambda: list(DEFAULT_RISKY_PATTERNS))
+    risky_categories: Dict[str, Any] = field(default_factory=lambda: {
+        "secret": True, "install": True, "priv": True,
+    })
     log_level: str = "info"
 
 
@@ -58,9 +62,11 @@ def load() -> Config:
         "time_limit_minutes",
         "max_cycles_per_run",
         "judge_model",
+        "judge_timeout_secs",
         "api_key_env",
         "safe_tools",
         "risky_patterns",
+        "risky_categories",
         "log_level",
     ):
         if key in data:
