@@ -133,6 +133,11 @@ def _cmd_config(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_serve(args: argparse.Namespace) -> int:
+    from codingbot.serve import run_serve
+    return run_serve(args.host, args.port, not args.no_browser)
+
+
 def _build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="codingbot")
     sub = p.add_subparsers(dest="cmd", metavar="COMMAND")
@@ -174,6 +179,12 @@ def _build_parser() -> argparse.ArgumentParser:
 
     cfg = sub.add_parser("config", help="현재 적용 중인 설정 표시")
     cfg.set_defaults(func=_cmd_config)
+
+    serve = sub.add_parser("serve", help="로컬 웹 대시보드 시작")
+    serve.add_argument("--host", default="127.0.0.1", help="bind host. default 127.0.0.1")
+    serve.add_argument("--port", type=int, default=8723, help="bind port. default 8723")
+    serve.add_argument("--no-browser", action="store_true", help="자동 브라우저 오픈 비활성")
+    serve.set_defaults(func=_cmd_serve)
 
     return p
 

@@ -158,3 +158,20 @@ def test_status_watch_default_interval_and_tail(tmp_codingbot_home, capsys, mock
 
     assert rc == 0
     assert "refresh 1s" in out
+
+
+# 0.7.0 — `serve` (W 사이클)
+
+def test_serve_subparser_invokes_run_serve_with_defaults(tmp_codingbot_home, mocker):
+    """`codingbot serve`가 host=127.0.0.1, port=8723, open_browser=True로 run_serve 호출."""
+    spy = mocker.patch("codingbot.serve.run_serve", return_value=0)
+    rc = cli.main(["serve"])
+    assert rc == 0
+    spy.assert_called_once_with("127.0.0.1", 8723, True)
+
+
+def test_serve_subparser_overrides(tmp_codingbot_home, mocker):
+    spy = mocker.patch("codingbot.serve.run_serve", return_value=0)
+    rc = cli.main(["serve", "--host", "0.0.0.0", "--port", "9000", "--no-browser"])
+    assert rc == 0
+    spy.assert_called_once_with("0.0.0.0", 9000, False)
