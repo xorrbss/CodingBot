@@ -71,3 +71,63 @@ def test_clearly_continuing_let_me():
 def test_clearly_done_korean_informal():
     assert heuristics.is_clearly_done("작업 마쳤어요") is True
     assert heuristics.is_clearly_done("끝났어요!") is True
+
+
+# _split_bash_segments
+
+from codingbot.heuristics import _split_bash_segments
+
+
+def test_split_simple_chain_semicolon():
+    assert _split_bash_segments("git status; git diff") == [
+        ["git", "status"], ["git", "diff"]
+    ]
+
+
+def test_split_chain_and_or_pipe():
+    assert _split_bash_segments("a && b") == [["a"], ["b"]]
+    assert _split_bash_segments("a || b") == [["a"], ["b"]]
+    assert _split_bash_segments("a | b") == [["a"], ["b"]]
+
+
+def test_split_preserves_quoted_chain_chars():
+    assert _split_bash_segments('echo "; rm -rf /"') == [
+        ["echo", "; rm -rf /"]
+    ]
+    assert _split_bash_segments("echo 'a && b'") == [
+        ["echo", "a && b"]
+    ]
+
+
+def test_split_command_substitution_dollar_paren():
+    segs = _split_bash_segments("result=$(curl http://x)")
+    assert ["curl", "http://x"] in segs
+
+
+def test_split_command_substitution_backtick():
+    segs = _split_bash_segments("result=`curl http://x`")
+    assert ["curl", "http://x"] in segs
+
+
+def test_split_unmatched_quote_returns_none():
+    assert _split_bash_segments('echo "x') is None
+
+
+def test_split_empty_returns_none_or_empty():
+    result = _split_bash_segments("")
+    assert result in (None, [])
+
+
+def test_split_single_command_no_chain():
+    assert _split_bash_segments("ls -la") == [["ls", "-la"]]
+
+
+def test_split_multiple_chain_operators():
+    segs = _split_bash_segments("a; b && c || d | e")
+    assert segs == [["a"], ["b"], ["c"], ["d"], ["e"]]
+
+
+def test_split_redirection_kept_in_segment():
+    segs = _split_bash_segments("echo x > /tmp/y")
+    assert segs is not None
+    assert len(segs) >= 1

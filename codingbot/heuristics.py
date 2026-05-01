@@ -1,8 +1,78 @@
 """규칙 기반 휴리스틱. 순수 함수. config의 safe/risky 리스트 참조."""
 import re
+import shlex
 from typing import Any, Dict
 
 from codingbot import config
+
+
+_CHAIN_OPS = {";", "&&", "||", "|"}
+
+
+def _split_bash_segments(cmd: str):
+    """Bash 명령을 segment(argv list) 단위로 분해.
+
+    Chain operators(;, &&, ||, |)와 command substitution($(), backtick)을
+    별도 segment로 분리. shlex로 1차 토큰화하여 quoting을 보존한다.
+    파싱 실패 시 None을 반환 (호출자가 unknown으로 매핑).
+    """
+    if not cmd or not cmd.strip():
+        return None
+
+    inner_cmds = []
+
+    def _extract_substitutions(s: str):
+        result = []
+        i = 0
+        while i < len(s):
+            if s[i] == "$" and i + 1 < len(s) and s[i + 1] == "(":
+                end = s.find(")", i + 2)
+                if end < 0:
+                    return None
+                inner_cmds.append(s[i + 2 : end])
+                result.append("__SUBST__")
+                i = end + 1
+            elif s[i] == "`":
+                end = s.find("`", i + 1)
+                if end < 0:
+                    return None
+                inner_cmds.append(s[i + 1 : end])
+                result.append("__SUBST__")
+                i = end + 1
+            else:
+                result.append(s[i])
+                i += 1
+        return "".join(result)
+
+    outer = _extract_substitutions(cmd)
+    if outer is None:
+        return None
+
+    try:
+        lexer = shlex.shlex(outer, posix=True, punctuation_chars=True)
+        lexer.whitespace_split = True
+        tokens = list(lexer)
+    except ValueError:
+        return None
+
+    segments = []
+    current = []
+    for tok in tokens:
+        if tok in _CHAIN_OPS:
+            if current:
+                segments.append(current)
+                current = []
+        else:
+            current.append(tok)
+    if current:
+        segments.append(current)
+
+    for inner in inner_cmds:
+        inner_segs = _split_bash_segments(inner)
+        if inner_segs:
+            segments.extend(inner_segs)
+
+    return segments if segments else None
 
 
 _SAFE_BASH_PREFIXES = (
