@@ -198,3 +198,20 @@ def test_route_non_get_returns_405(tmp_codingbot_home):
     from codingbot import serve
     status, _, _ = serve._route("POST", "/api/state")
     assert status == 405
+
+
+def test_route_static_dotdot_returns_404(tmp_codingbot_home):
+    """`/static/..` (단일 토큰)는 명시적으로 404."""
+    from codingbot import serve
+    status, _, _ = serve._route("GET", "/static/..")
+    assert status == 404
+    status, _, _ = serve._route("GET", "/static/.")
+    assert status == 404
+
+
+def test_read_log_tail_lines_zero_returns_empty(tmp_codingbot_home):
+    """n<=0이면 빈 리스트 (`[-0:]` 가 전체 반환되는 함정 회피)."""
+    from codingbot import serve
+    paths.log_file().write_text("a\nb\nc\n", encoding="utf-8")
+    assert serve._read_log_tail_lines(0) == []
+    assert serve._read_log_tail_lines(-3) == []

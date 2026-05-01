@@ -100,13 +100,13 @@ _STATIC_NAME_RE = re.compile(r"^[A-Za-z0-9._-]+$")
 
 def _read_log_tail_lines(n: int) -> List[str]:
     p = paths.log_file()
-    if not p.exists():
+    if not p.exists() or n <= 0:
         return []
     return p.read_text(encoding="utf-8").splitlines()[-n:]
 
 
 def _load_static(name: str) -> Optional[bytes]:
-    if not _STATIC_NAME_RE.match(name):
+    if not _STATIC_NAME_RE.match(name) or name in (".", ".."):
         return None
     target = files("codingbot.static") / name
     if not target.is_file():
