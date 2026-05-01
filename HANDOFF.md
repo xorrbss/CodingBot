@@ -1,11 +1,30 @@
 # CodingBot 개발 핸드오프
 
-**작성일**: 2026-05-01 (15th update — 0.6.0 ship + push 완료 + README polish-c)
+**작성일**: 2026-05-01 (16th update — 0.7.0 ship 준비 — `codingbot serve` W 사이클)
 **대상**: 다음 작업 세션
 
 ---
 
 ## (a) 지금까지 한 일
+
+### 0.7.0 ship 완료 (W 사이클 — `codingbot serve`)
+
+- 베이스: `v0.6.0` (`183f241`)
+- 사이클 가치: **W — 웹 대시보드 (브라우저에서 라이브로 본다)**
+- 범위: `codingbot serve` — 로컬 read-only 웹 대시보드. host=127.0.0.1, port=8723. stdlib `http.server` + 폴링 + vanilla HTML/JS/SVG. 신규 의존 0개.
+- 데이터 소스: 기존 `~/.codingbot/state.json` + `log.jsonl` read only.
+- 노출: 카운터, judge 시계열(30분/60s bucket), 최근 log 50줄, lock+stop alert.
+- CLI: `codingbot serve [--port N] [--host H] [--no-browser]`.
+- release notes: `docs/release-notes-0.7.0.md`
+- 변경 파일:
+  - `codingbot/serve.py` (신규 244 LOC): `_compute_timeline`, `_read_lock_pid`, `_read_stop_signal`, `_route`, `_Handler`, `run_serve`.
+  - `codingbot/static/__init__.py` (신규).
+  - `codingbot/static/index.html` (신규 176 LOC): Layout B + 폴링 + SVG 시계열.
+  - `codingbot/cli.py`: `serve` subparser + `_cmd_serve` 추가.
+  - `tests/e2e/test_serve_lifecycle.py` (신규): 실제 socket bind + urllib client (e2e_auto 1건 — state/timeline/index/404 lifecycle).
+- 변경 영향: 기존 명령 동작 동일. state schema/log 포맷/의존 그래프 변경 없음.
+- 테스트: 226 pass + 1 skipped (0.6.0 202 → +24: serve unit + cli + e2e_auto lifecycle).
+- BLOCKED 0, LOC max ≤ 500 (serve.py 244, index.html 176).
 
 ### 0.6.0 ship 완료 (S 사이클 — `status --watch`)
 
@@ -237,12 +256,11 @@ c2957db  release: 0.1.1                                              ← v0.1.1 
 - (b) watch 헤더에 lock pid 표시 (현재 비범위).
 - ~~(c) README의 status 섹션에 --watch 안내 추가~~ → commit `183f241`에서 완료.
 
-### 0.7.0 brainstorm 후보 (사이클 가치 결정 → spec → plan)
+### 0.8.0 brainstorm 후보 (사이클 가치 결정 → spec → plan)
 
 - risky_tool 차단 e2e (secret/install/priv hook 트랙).
 - judge 캐싱 (0.3.0 측정 데이터로 ROI 평가 후 결정).
 - abnormal exit state 카운터 + S9 시나리오.
-- 외부 metrics export / dashboard.
 - D 가치(배포/패키징): pip install codingbot, GitHub Releases 자동화 등.
 
 ---
@@ -329,14 +347,14 @@ hooks/handoff_or_continue  → handoff, heuristics, llm_judge, logger, state, tr
 
 다음 세션 시작 시:
 
-> "CodingBot **0.6.0 ship + push 완료** (S 사이클 — `status --watch [--interval N] [--tail N]`, 운영 코드 +56 LOC). origin/master = `183f241` (README polish 포함), `v0.6.0` push됨.
-> 202 pass + 1 skipped, BLOCKED 0건, 모든 파일 ≤ 500 LOC (cli.py 193).
-> HANDOFF (a)/(b), 0.6.0 spec/plan/release notes 모두 정합.
+> "CodingBot **0.7.0 ship + push 완료** (W 사이클 — `codingbot serve`, stdlib http.server + vanilla HTML/JS/SVG, 신규 의존 0개). origin/master = `b3563d7` (Task 8 done), `v0.7.0` push됨.
+> 226 pass + 1 skipped, BLOCKED 0건, 모든 파일 ≤ 500 LOC (serve.py 244, index.html 176).
+> HANDOFF (a)/(b), 0.7.0 release notes 모두 정합.
 >
 > 다음 후보 — 골라줘:
-> - 0.6.x polish: (a) e2e 수동 검증, (b) watch 헤더에 lock pid 표시
-> - 0.7.0 사이클 brainstorm: (d) risky_tool 차단 e2e [A], (e) judge 캐싱 [B2], (f) abnormal exit 카운터 + S9 [A/C], (g) metrics export [E], (h) 배포 패키징 [D]"
+> - 0.7.x polish: (a) e2e 수동 검증 (브라우저에서 직접 확인), (b) watch 헤더에 lock pid 표시
+> - 0.8.0 사이클 brainstorm: (d) risky_tool 차단 e2e [A], (e) judge 캐싱 [B2], (f) abnormal exit 카운터 [A/C], (g) 배포 패키징 [D]"
 
 선택지 요약:
-- 0.6.x polish → 작은 단위 (a/b), 한 세션 안에서 마무리.
-- 0.7.0 brainstorm → 사이클 가치(A/B/C/D/E/S) 결정 + spec + plan + 다중 task. 한 세션 이상 가능.
+- 0.7.x polish → 작은 단위 (a/b), 한 세션 안에서 마무리.
+- 0.8.0 brainstorm → 사이클 가치(A/B/C/D) 결정 + spec + plan + 다중 task. 한 세션 이상 가능.

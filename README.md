@@ -23,6 +23,8 @@ codingbot stop
 codingbot status
 codingbot status --watch              # 한 화면에서 라이브 (Ctrl-C로 종료)
 codingbot status --watch --interval 2 --tail 20
+codingbot serve                       # 브라우저에서 라이브 대시보드 (default: http://127.0.0.1:8723)
+codingbot serve --port 9000 --no-browser
 codingbot tail-log -n 50
 
 # 설정 확인
