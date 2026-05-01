@@ -1,19 +1,19 @@
 # CodingBot 개발 핸드오프
 
-**작성일**: 2026-05-01 (6th update — 0.1.2 로컬 태그 완료)
+**작성일**: 2026-05-01 (7th update — 0.1.2 push 완료 + HANDOFF drift 정리)
 **대상**: 다음 작업 세션
 
 ---
 
 ## (a) 지금까지 한 일
 
-### 0.1.2 로컬 태그 완료
+### 0.1.2 push 완료
 
-- `pyproject.toml` `version = "0.1.2"`
-- 로컬 annotated 태그 `v0.1.2` 생성 (commit `<release-commit>`)
-- **push는 미실행 — 사용자 승인 게이트**:
-  - 현재 origin: `git@github.com:xorrbss/CodingBot.git`, master `fb449c8` (0.1.1 ship 후 HANDOFF 갱신까지 포함), tags `v0.1.0`/`v0.1.1`
-  - 0.1.2 commits 4건(`91c1051`, `12ad542`, `cbb79e6`, `16e70f1`)과 `v0.1.2` 태그는 **로컬에만 존재**. push procedure는 `docs/push-procedure.md`.
+- origin: `https://github.com/xorrbss/CodingBot.git`
+- origin/master = local master = HEAD (`5d98f4d` 직후 본 정리 commit)
+- 태그 `v0.1.2` (annotated, commit `16e70f1`) origin에 등록됨
+- `git status` clean (`.claude/`는 gitignore에 추가됨)
+- 6th update 시점에는 "0.1.2 로컬 태그만 완료, push 미실행"으로 기록되어 있었으나 실제로는 그 후 push가 진행됨. 본 commit에서 HANDOFF를 실제 상태에 맞춰 정정함.
 
 ### 이번 세션 작업 요약 (Unit-1 → Unit-2 → Unit-3)
 
@@ -35,7 +35,9 @@
 ### Git history (HEAD 기준)
 
 ```
-<release finalize>  release: 0.1.2 finalize (notes/handoff)         ← v0.1.2 tag
+<this commit>  docs(handoff): drift 정리 — 0.1.2 push 완료 반영 + .claude gitignore
+5d98f4d  docs(handoff): correct origin master SHA (fb449c8, not 0247e27)
+16e70f1  release: 0.1.2 finalize (notes/handoff)                    ← v0.1.2 tag
 cbb79e6  release: 0.1.2 draft (transcript I-4/I-5 정공법)
 12ad542  perf(transcript): tail-style read for last_assistant_text (I-4)
 91c1051  fix(transcript): reconstruct iter_messages with real session schema (I-5)
@@ -55,26 +57,18 @@ c2957db  release: 0.1.1                                              ← v0.1.1 
 
 ## (b) 다음에 할 일
 
-### 0.1.2 출시 마무리 (사용자 승인 게이트)
+0.1.2 push까지 완료되어 release 게이트는 모두 닫혔다. 이후 후보(우선순위 낮음):
 
-```bash
-# 사전 점검
-git status                   # clean working tree
-git log v0.1.2 --no-patch -1 # tag 메시지 확인
-git log origin/master..HEAD --oneline  # push 대상 확인 (4 commits)
+### 0.1.x 추가 polish 후보
 
-# push (사용자 명시 승인 후)
-git push origin master
-git push origin v0.1.2
-```
-
-push 후 `docs/push-procedure.md` D 섹션의 사후 확인 수행.
-
-### 0.1.x 추가 polish 후보 (우선순위 낮음)
-
-- 현재 알려진 BLOCKED 0건. 무리 없이 0.1.x 범위 내.
+- 현재 알려진 BLOCKED 0건.
 - e2e 수동 검증 (실제 Claude Code run에서 hook 동작 확인 — 비용 발생).
 - HANDOFF의 "지금까지 한 일" 항목이 누적되고 있어 0.2.0 시점에 archive 정리 검토.
+
+### 0.2.0 brainstorm
+
+- 0.1.x 사이클 마무리 단계. 다음 사이클 방향 brainstorm 시점.
+- 기준: 모듈 의존 그래프 / spec §5.6까지의 인터페이스를 깨지 않는 확장.
 
 ---
 
@@ -141,9 +135,9 @@ hooks/handoff_or_continue  → handoff, heuristics, llm_judge, logger, state, tr
 
 다음 세션 시작 시:
 
-> "CodingBot **0.1.2** 로컬 태그 완료 (transcript I-4/I-5 정공법).
-> master HEAD와 `v0.1.2`는 로컬만, origin은 `0247e27`/`v0.1.1`까지.
-> 99/99 green, BLOCKED 0건. 0.1.2 push할까, 아니면 다른 작업?"
+> "CodingBot **0.1.2 ship 완료** (transcript I-4/I-5 정공법, origin/master = HEAD, `v0.1.2` push됨).
+> 99/99 green, BLOCKED 0건. 0.1.x polish 더 갈까, 0.2.0 brainstorm 갈까, 아니면 다른 작업?"
 
-push → `docs/push-procedure.md` 절차.
-다른 작업 → 0.1.x polish 후보 또는 e2e 수동 검증.
+선택지:
+- 0.1.x polish → e2e 수동 검증 또는 HANDOFF archive 정리
+- 0.2.0 brainstorm → spec/모듈 그래프 위에서 확장 후보 정리

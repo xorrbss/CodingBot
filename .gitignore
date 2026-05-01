@@ -21,3 +21,6 @@ venv/
 
 # Runtime state (codingbot)
 .heartbeat
+
+# Claude Code local artifacts
+.claude/
