@@ -13,8 +13,24 @@ def _initial_state() -> Dict[str, Any]:
     return {
         "cycle_started_at": datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z"),
         "cycles_this_run": 0,
+        # 기존 (0.1.x 호환)
         "auto_approve_count": 0,
         "auto_continue_count": 0,
+        # 0.3.0 신규: PreToolUse decision source
+        "auto_approve_by_heuristic": 0,
+        "auto_approve_by_llm": 0,
+        "auto_defer_by_rule": 0,
+        "auto_defer_by_heuristic": 0,
+        "auto_defer_by_llm": 0,
+        # 0.3.0 신규: Stop hook outcome
+        "stop_block_continue": 0,
+        "stop_block_handoff": 0,
+        "stop_block_unstuck": 0,
+        "stop_allow": 0,
+        # 0.3.0 신규: judge call telemetry
+        "judge_call_total": 0,
+        "judge_timeout_total": 0,
+        "judge_error_total": 0,
     }
 
 

@@ -73,3 +73,28 @@ def test_clear_stop_signal(tmp_codingbot_home):
 
 def test_clear_stop_signal_no_file_ok(tmp_codingbot_home):
     state.clear_stop_signal()  # no exception
+
+
+# --- 0.3.0 신규 카운터 ---
+
+NEW_COUNTER_KEYS = [
+    "auto_approve_by_heuristic",
+    "auto_approve_by_llm",
+    "auto_defer_by_rule",
+    "auto_defer_by_heuristic",
+    "auto_defer_by_llm",
+    "stop_block_continue",
+    "stop_block_handoff",
+    "stop_block_unstuck",
+    "stop_allow",
+    "judge_call_total",
+    "judge_timeout_total",
+    "judge_error_total",
+]
+
+
+def test_initial_state_includes_new_counters(tmp_codingbot_home):
+    state.start_cycle()
+    s = state.read()
+    for key in NEW_COUNTER_KEYS:
+        assert s.get(key) == 0, f"missing or non-zero: {key}"
