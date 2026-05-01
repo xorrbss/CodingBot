@@ -168,3 +168,30 @@ def test_s11_priv_segment_blocked(hook_env, transcript_jsonl_factory):
     counters = state.read()
     assert counters.get("auto_defer_by_heuristic", 0) == 1
     assert counters.get("judge_call_total", 0) == 0
+
+
+def test_s12_chain_bypass_still_blocked(hook_env, transcript_jsonl_factory):
+    """S12: Bash `echo ok && cat .env` → 첫 segment 안전해도 chain 내부 secret 차단.
+
+    0.2.0 보안 주장의 핵심 — _split_bash_segments가 chain operator로 분리한 뒤
+    각 segment를 독립 검사하므로 chain 우회가 불가능함을 hook 통합 e2e로 고정.
+    """
+    transcript = transcript_jsonl_factory([
+        {"role": "assistant", "text": "임의 텍스트"},
+    ])
+
+    r = run_pre_tool_use(
+        stdin_dict={
+            "tool_name": "Bash",
+            "tool_input": {"command": "echo ok && cat .env"},
+            "transcript_path": str(transcript),
+        },
+        env=hook_env(),
+    )
+
+    assert r.exit_code == 0
+    assert r.decision is None
+    counters = state.read()
+    assert counters.get("auto_defer_by_heuristic", 0) == 1
+    assert counters.get("auto_approve_count", 0) == 0  # 첫 segment "echo ok"가 approve 분기로 새지 않음
+    assert counters.get("judge_call_total", 0) == 0
