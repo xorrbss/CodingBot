@@ -2,7 +2,7 @@
 import pytest
 
 from codingbot import paths, state
-from tests.e2e.hook_harness import run_stop_hook
+from tests.e2e.hook_harness import run_pre_tool_use, run_stop_hook
 
 
 pytestmark = pytest.mark.e2e_auto
@@ -26,3 +26,31 @@ def test_s5_stop_signal_active_allows_stop(
     assert r.decision is None  # 빈 stdout = _allow_stop
     counters = state.read()
     assert counters.get("stop_allow", 0) == 1
+
+
+def test_s6_judge_timeout_pretool_defers_to_user(
+    hook_env, transcript_jsonl_factory
+):
+    """S6: ambiguous tool + judge_timeout fault inject → _defer_to_user, 카운터 증가."""
+    from codingbot import state
+
+    transcript = transcript_jsonl_factory([
+        {"role": "assistant", "text": "다음 단계 진행 중입니다."},
+    ])
+
+    r = run_pre_tool_use(
+        stdin_dict={
+            # WebFetch는 default safe_tools에 없고 Bash도 아니며, url 값에 risky_pattern 매치 없음
+            # → heuristic verdict "unknown" → judge 분기 진입 → fault-inject로 timeout
+            "tool_name": "WebFetch",
+            "tool_input": {"url": "https://example.com/doc"},
+            "transcript_path": str(transcript),
+        },
+        env=hook_env(CODINGBOT_FAULT_INJECT="judge_timeout"),
+    )
+
+    assert r.exit_code == 0
+    assert r.decision is None  # _defer_to_user — stdout 빈 출력
+    counters = state.read()
+    assert counters.get("judge_timeout_total", 0) == 1
+    assert counters.get("judge_call_total", 0) == 1
