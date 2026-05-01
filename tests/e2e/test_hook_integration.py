@@ -78,3 +78,27 @@ def test_s7_judge_timeout_stop_allows_stop(
     counters = state.read()
     assert counters.get("judge_timeout_total", 0) == 1
     assert counters.get("judge_call_total", 0) == 1
+
+
+def test_s8_judge_error_stop_allows_stop(
+    hook_env, transcript_jsonl_factory
+):
+    """S8: heuristic 미매치 + judge_error → Stop hook _allow_stop("llm_failed"), error 카운터 증가."""
+    from codingbot import state
+
+    transcript = transcript_jsonl_factory([
+        {"role": "user", "text": "확인 부탁"},
+        {"role": "assistant", "text": "지금 작업 단위의 중간 점검 메모입니다."},
+    ])
+
+    r = run_stop_hook(
+        stdin_dict={"transcript_path": str(transcript)},
+        env=hook_env(CODINGBOT_FAULT_INJECT="judge_error"),
+    )
+
+    assert r.exit_code == 0
+    assert r.decision is None
+    counters = state.read()
+    assert counters.get("judge_error_total", 0) == 1
+    assert counters.get("judge_timeout_total", 0) == 0  # 분기 분리 검증
+    assert counters.get("judge_call_total", 0) == 1
