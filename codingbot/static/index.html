@@ -129,9 +129,9 @@ function renderTimeline(payload) {
   buckets.forEach((b, i) => {
     const x = i * w;
     const heights = [
-      { v: b.judge_call,    color: "#6aa84f" },
-      { v: b.judge_timeout, color: "#e69138" },
-      { v: b.judge_error,   color: "#cc0000" },
+      { v: b.judge_call    || 0, color: "#6aa84f" },
+      { v: b.judge_timeout || 0, color: "#e69138" },
+      { v: b.judge_error   || 0, color: "#cc0000" },
     ];
     let yCursor = 80;
     for (const seg of heights) {
@@ -157,16 +157,20 @@ async function tickState() {
   } catch (e) { renderAlert(null); }
 }
 async function tickLog() {
-  try { renderLog(await fetchJSON("/api/log/tail?n=50")); } catch (e) {}
+  try { renderLog(await fetchJSON("/api/log/tail?n=50")); } catch (e) { console.error(e); }
 }
 async function tickTimeline() {
-  try { renderTimeline(await fetchJSON("/api/timeline?window=1800")); } catch (e) {}
+  try { renderTimeline(await fetchJSON("/api/timeline?window=1800")); } catch (e) { console.error(e); }
 }
 
-tickState(); tickLog(); tickTimeline();
-setInterval(tickState, 1000);
-setInterval(tickLog, 2000);
-setInterval(tickTimeline, 5000);
+function loop(fn, ms) {
+  (async function run() {
+    try { await fn(); } finally { setTimeout(run, ms); }
+  })();
+}
+loop(tickState, 1000);
+loop(tickLog, 2000);
+loop(tickTimeline, 5000);
 </script>
 </body>
 </html>
