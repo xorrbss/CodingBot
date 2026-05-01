@@ -146,3 +146,25 @@ def test_s10_install_segment_blocked(hook_env, transcript_jsonl_factory):
     counters = state.read()
     assert counters.get("auto_defer_by_heuristic", 0) == 1
     assert counters.get("judge_call_total", 0) == 0
+
+
+def test_s11_priv_segment_blocked(hook_env, transcript_jsonl_factory):
+    """S11: Bash `sudo rm /tmp/x` → heuristic risky(priv) → _defer_to_user."""
+    transcript = transcript_jsonl_factory([
+        {"role": "assistant", "text": "임의 텍스트"},
+    ])
+
+    r = run_pre_tool_use(
+        stdin_dict={
+            "tool_name": "Bash",
+            "tool_input": {"command": "sudo rm /tmp/x"},
+            "transcript_path": str(transcript),
+        },
+        env=hook_env(),
+    )
+
+    assert r.exit_code == 0
+    assert r.decision is None
+    counters = state.read()
+    assert counters.get("auto_defer_by_heuristic", 0) == 1
+    assert counters.get("judge_call_total", 0) == 0
