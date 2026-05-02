@@ -1,11 +1,27 @@
 # CodingBot 개발 핸드오프
 
-**작성일**: 2026-05-02 (17th update — 0.8.0 ship 완료 — risky_tool 차단 hook 통합 e2e (A 사이클))
+**작성일**: 2026-05-02 (18th update — 0.8.0 push 완료 + 0.8.x polish (b)(c)(d))
 **대상**: 다음 작업 세션
 
 ---
 
 ## (a) 지금까지 한 일
+
+### 0.8.0 push + polish (b)(c)(d) 완료 (2026-05-02)
+
+- 0.8.0 push: `git push origin master --follow-tags` — `5119024..1c334da master`, `v0.8.0` tag 등록.
+- polish (b) `feat(cli): show lock pid in status --watch header` (`b77d842`):
+  - `_read_lock_pid()` 헬퍼 (cli.py) — serve.py 동일 7줄 패턴 의도적 중복(3rd caller 등장 시 통합).
+  - watch 헤더 끝에 `lock pid=<n>` / `lock none` append. 1회성 status 출력 무변경.
+  - 단위 회귀 5(int/none/garbage + 헤더 pid present/absent).
+- polish (c) `test(e2e): make tmp_codingbot_home explicit on S9~S13` (`bda20db`):
+  - S5 패턴(명시 fixture param)으로 통일. 동작 영향 0(transitive였음).
+- polish (d) `docs(readme): add chain bypass case to safety section` (`b68fb35`):
+  - `echo ok && cat .env` 차단 사례를 안전장치 목록에 노출(0.2.0 보장 / 0.8.0 S12 회귀와 정합).
+- 테스트: **236 pass + 1 skipped** (0.8.0 ship 시점 231 → +5 cli watch 헤더 회귀).
+- e2e_auto 25 unchanged. BLOCKED 0. LOC max 338(`tests/unit/test_heuristics.py`) 유지(cli.py 124, test_hook_integration.py 236).
+- origin/master = local master = `b68fb35`. push 완료 후 polish 3 commits ahead — push 별도 결정.
+- (a) 0.7.0 실 데이터 e2e 수동 검증은 manual run 필요로 본 세션 범위 외.
 
 ### 0.8.0 ship 완료 (A 사이클 — risky_tool 차단 hook 통합 e2e)
 
@@ -15,7 +31,7 @@
 - spec: `docs/superpowers/specs/2026-05-02-codingbot-0.8.0-design.md`
 - plan: `docs/superpowers/plans/2026-05-02-codingbot-0.8.0.md`
 - release notes: `docs/release-notes-0.8.0.md`
-- local master = `<this commit>`, `v0.8.0` annotated tag (push 미실행 — 사용자 명시 승인 후)
+- local master = `1c334da` (release commit `1255fc6`), `v0.8.0` annotated tag — **push 완료** (18th update에서 push).
 - 변경 파일:
   - `tests/e2e/test_hook_integration.py`: S9~S13 5 함수 append (104 → 226 LOC).
   - `pyproject.toml`: 0.7.0 → 0.8.0.
@@ -266,7 +282,8 @@ c2957db  release: 0.1.1                                              ← v0.1.1 
 
 ### 테스트 현황
 
-- **231 pass + 1 skipped** (0.7.0 시점 226 → 0.8.0 A 사이클에서 +5: e2e_auto S9~S13 risky_tool defer/approve 회귀)
+- **236 pass + 1 skipped** (0.8.0 ship 시점 231 → 0.8.x polish (b)에서 +5: cli `_read_lock_pid` 3 + watch 헤더 pid 표시 회귀 2)
+- 이전: 231 pass + 1 skipped (0.7.0 시점 226 → 0.8.0 A 사이클에서 +5: e2e_auto S9~S13 risky_tool defer/approve 회귀)
 - 이전: 226 pass + 1 skipped (0.6.0 시점 202 → 0.7.0 W 사이클에서 +24: serve unit + cli + e2e_auto lifecycle)
 - 이전: 202 pass + 1 skipped (0.5.0 시점 198 → 0.6.0 S 사이클에서 +4: cli `_read_log_tail` 2 + status --watch 루프 1회 실행 2)
 - 이전: 198 pass + 1 skipped (0.4.0 시점 182 → 0.5.0에서 +16: llm_judge fault-inject 3 + e2e fixtures 3 + hook_harness 5 + S4 1 + S5~S8 4)
@@ -281,14 +298,14 @@ c2957db  release: 0.1.1                                              ← v0.1.1 
 
 ## (b) 다음에 할 일
 
-0.8.0 ship 완료 (push 미실행 — 사용자 명시 승인 후). release 게이트 모두 닫힘. 다음 후보:
+0.8.0 push 완료. polish (b)/(c)/(d) 완료. **polish 3 commits push 미실행** (사용자 결정 후). release 게이트 모두 닫힘. 다음 후보:
 
-### 0.7.x/0.8.x polish 후보 (잔여)
+### 0.7.x/0.8.x polish 잔여
 
-- (a) 0.7.0 e2e 수동 검증 (실제 Claude Code run + 브라우저 dashboard 직접 확인) — 0.7.x polish (a) 별도로 sandbox 합성 데이터 검증은 완료, 실 데이터 검증은 미실시.
-- (b) watch 헤더에 lock pid 표시.
-- (c) S9~S13 비대칭 정리: hook 통합 e2e 모두에 `tmp_codingbot_home` 명시 파라미터 추가(현재 `hook_env` 의존성 통해 transitive). 패턴 일관성 polish, 동작 영향 0.
-- (d) README "안전성" 섹션에 chain bypass 사례(`echo ok && cat .env`) 추가.
+- (a) 0.7.0 e2e 수동 검증 (실제 Claude Code run + 브라우저 dashboard 직접 확인) — 0.7.x polish (a) 별도로 sandbox 합성 데이터 검증은 완료, 실 데이터 검증은 미실시. **manual run 필요**.
+- ~~(b) watch 헤더에 lock pid 표시~~ → 18th update에서 완료 (`b77d842`).
+- ~~(c) S9~S13 비대칭 정리~~ → 18th update에서 완료 (`bda20db`).
+- ~~(d) README "안전성" 섹션 chain bypass 사례~~ → 18th update에서 완료 (`b68fb35`).
 
 ### 0.9.0 brainstorm 후보 (사이클 가치 결정 → spec → plan)
 
@@ -384,16 +401,16 @@ hooks/handoff_or_continue  → handoff, heuristics, llm_judge, logger, state, tr
 
 다음 세션 시작 시:
 
-> "CodingBot **0.8.0 ship 완료** (A 사이클 — risky_tool 차단 hook 통합 e2e, S9~S13). 운영 코드 변경 0. 로컬 master = release commit, `v0.8.0` annotated tag — **push 미실행** (사용자 승인 후).
-> 231 pass + 1 skipped, BLOCKED 0건, e2e_auto 25(~37s), LOC max 338(`tests/unit/test_heuristics.py`) 유지.
-> HANDOFF (a)/(b), 0.8.0 release notes 모두 정합.
+> "CodingBot **0.8.0 push 완료 + 0.8.x polish (b)(c)(d) 완료**. v0.8.0 origin 등록. polish 3 commits(`b77d842 b68fb35 사이`) push 미실행.
+> 236 pass + 1 skipped, BLOCKED 0건, e2e_auto 25, LOC max 338(`tests/unit/test_heuristics.py`) 유지.
+> HANDOFF 18th update + 0.8.0 release notes 정합.
 >
 > 다음 후보 — 골라줘:
-> - 0.8.0 push: 사용자 승인 → `git push origin master --follow-tags`
-> - 0.7.x/0.8.x polish: (a) 0.7.0 실 데이터 e2e 수동 검증, (b) watch 헤더 lock pid, (c) S9~S13 `tmp_codingbot_home` 명시화, (d) README 안전성 섹션 chain bypass 사례 추가
+> - polish push: `git push origin master` (tag 변동 없음).
+> - polish 잔여 (a) 0.7.0 실 데이터 e2e 수동 검증 — manual run 필요.
 > - 0.9.0 brainstorm: (e) abnormal exit + S14 [A/C], (f) judge 캐싱 [B2], (g) 배포 패키징 [D]"
 
 선택지 요약:
-- 0.8.0 push → 1 명령, 즉시.
-- polish → 작은 단위 (a~d), 한 세션 안에서 마무리.
+- polish push → 1 명령, 즉시.
+- (a) manual e2e → 사용자 손으로 `codingbot run` + browser dashboard.
 - 0.9.0 brainstorm → 사이클 가치 결정 + spec + plan + 다중 task. 한 세션 이상 가능.
