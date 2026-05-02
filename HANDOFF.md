@@ -1,11 +1,49 @@
 # CodingBot 개발 핸드오프
 
-**작성일**: 2026-05-02 (19th update — 0.8.x polish (e) README install — "사용 가능" 갭 닫음)
+**작성일**: 2026-05-02 (20th update — 0.9.0 ship 완료 — judge OFF 모드 P 사이클)
 **대상**: 다음 작업 세션
 
 ---
 
 ## (a) 지금까지 한 일
+
+### 0.9.0 ship 완료 (P 사이클 — judge OFF 모드: privacy/cost) (2026-05-02)
+
+- 베이스: `v0.8.0` polish (e) 이후 (`242e6cf`)
+- 사이클 가치: **P — privacy/cost** (Anthropic API 호출 0건 옵션, ANTHROPIC_API_KEY 불필요)
+- 범위: `Config.judge_enabled: bool = True` 신규 + `llm_judge._call` 진입부 short-circuit ~5 LOC. 기존 hook fallback(JudgeError → defer/allow_stop, S6/S7/S8 회귀)이 안전 처리.
+- spec: `docs/superpowers/specs/2026-05-02-codingbot-0.9.0-design.md`
+- plan: `docs/superpowers/plans/2026-05-02-codingbot-0.9.0.md`
+- release notes: `docs/release-notes-0.9.0.md`
+- 배경:
+  - 사용자 요청 "Anthropic API는 쓰지말고 CLI만 쓰게 해줘" → CLI judge(`claude -p`) 후보 검토 → 실측 17~35s startup overhead로 hook hot path 부적합 판정 (19th update 이후 대화)
+  - 즉시 가용 경로 = judge 분기 자체를 비활성화 + 기존 안전 폴백 재사용
+- 변경 파일:
+  - `codingbot/config.py`: `judge_enabled: bool = True` 필드 + `load()` whitelist 추가
+  - `codingbot/llm_judge.py`: `_call` fault-inject 다음에 `if not cfg.judge_enabled: raise JudgeError(...)` 3줄
+  - `tests/unit/test_config.py` +2 (default True / yaml override)
+  - `tests/unit/test_llm_judge.py` +2 (`evaluate_tool_safety`/`classify` 모두 `_client` 미호출 + JudgeError) + 기존 `test_call_fault_inject_unknown_value_is_noop`에 `tmp_codingbot_home` 추가 (cache 격리, 부수효과)
+  - `config.example.yaml`: `judge_enabled: true` + 주석 추가
+  - `README.md`: 안전장치 섹션에 `judge_enabled: false` 모드 안내 1줄, install URL `v0.8.0 → v0.9.0`
+  - `pyproject.toml`: 0.8.0 → 0.9.0
+  - `~/.codingbot/config.yaml` (사용자 환경, repo 외): `judge_enabled: false` 적용 — `codingbot config` 출력 검증 완료
+- 변경 영향: public API breaking change 없음. `judge_enabled` 미지정 시 default True → 0.8.0 동작 100% 보존.
+- 테스트: **240 pass + 1 skipped** (236 → +4: config 2 + llm_judge 2).
+- e2e_auto: 25 unchanged. BLOCKED 0. LOC max 338(`tests/unit/test_heuristics.py`) 유지.
+- 운영 코드 변경: `git diff v0.8.0..v0.9.0 -- codingbot/`: `config.py` +5 LOC + `llm_judge.py` +3 LOC = 8 LOC.
+- local master = release commit + `v0.9.0` annotated tag — **push는 사용자 승인 게이트** (Task 7).
+
+#### 이번 사이클 작업 요약 (Task 1~7)
+
+| Task | 내용 | 커밋 |
+|---|---|---|
+| 1 | `Config.judge_enabled` 필드 + `load()` whitelist + 회귀 2 | `daa8e02` |
+| 2 | `llm_judge._call` short-circuit + 회귀 2 + cache 격리 부수 수정 | `42e343c` |
+| 3 | `config.example.yaml` 주석 + 키 | `2f29847` |
+| 4 | README judge_enabled OFF 모드 1줄 | `34bcfca` |
+| 5 | 사용자 환경 `~/.codingbot/config.yaml` `judge_enabled: false` | (no commit — repo 외) |
+| 6 | release: pyproject 0.9.0 + notes + HANDOFF + tag | (이 commit) |
+| 7 | push (사용자 승인 게이트) | — |
 
 ### 0.8.x polish (e) 완료 + 0.9.0 D 사이클 보류 (2026-05-02)
 
@@ -295,7 +333,8 @@ c2957db  release: 0.1.1                                              ← v0.1.1 
 
 ### 테스트 현황
 
-- **236 pass + 1 skipped** (0.8.0 ship 시점 231 → 0.8.x polish (b)에서 +5: cli `_read_lock_pid` 3 + watch 헤더 pid 표시 회귀 2)
+- **240 pass + 1 skipped** (0.8.x polish (b) 시점 236 → 0.9.0 P 사이클에서 +4: config `judge_enabled` 2 + llm_judge short-circuit 2)
+- 이전: 236 pass + 1 skipped (0.8.0 ship 시점 231 → 0.8.x polish (b)에서 +5: cli `_read_lock_pid` 3 + watch 헤더 pid 표시 회귀 2)
 - 이전: 231 pass + 1 skipped (0.7.0 시점 226 → 0.8.0 A 사이클에서 +5: e2e_auto S9~S13 risky_tool defer/approve 회귀)
 - 이전: 226 pass + 1 skipped (0.6.0 시점 202 → 0.7.0 W 사이클에서 +24: serve unit + cli + e2e_auto lifecycle)
 - 이전: 202 pass + 1 skipped (0.5.0 시점 198 → 0.6.0 S 사이클에서 +4: cli `_read_log_tail` 2 + status --watch 루프 1회 실행 2)
@@ -311,7 +350,11 @@ c2957db  release: 0.1.1                                              ← v0.1.1 
 
 ## (b) 다음에 할 일
 
-0.8.0 push + polish (b)/(c)/(d)/(e) 모두 완료. **외부 사용자 install 가능 상태**. 다음 후보:
+0.9.0 ship 완료 (P 사이클 — judge OFF 모드). **사용자 환경에서 API 호출 0건으로 동작 가능**. push는 사용자 게이트.
+
+### 즉시 게이트
+
+- Task 7 — `git push origin master --follow-tags` (사용자 승인 필요)
 
 ### 0.7.x/0.8.x polish 잔여
 
@@ -321,22 +364,29 @@ c2957db  release: 0.1.1                                              ← v0.1.1 
 - ~~(d) README "안전성" 섹션 chain bypass~~ → `b68fb35`.
 - ~~(e) README install/prerequisites~~ → `242e6cf`.
 
-### 0.9.0 후보 (사이클 가치 결정 → spec → plan)
+### 0.10.0 후보 (사이클 가치 결정 → spec → plan)
 
 - (e) abnormal exit state 카운터 + S14 시나리오 [A/C — 0.3.0 카운터 + 0.5.0 e2e 트랙 동시 확장]
-- (f) judge 캐싱 [B2 — (a) 실 데이터 누적 후 ROI 재평가]
+- (f) judge 캐싱 [B2 — `judge_enabled=true` 사용자가 (a) 실 데이터 누적 후 ROI 재평가]
 - ~~(g) 배포 패키징 [D]~~ → 19th update에서 보류 결정. polish (e)로 외부 install 갭 닫음. wheel/GHA pipeline은 실 사용자 friction 보고 시 0.10.0 D로 재개.
-- (h) smoke install CI workflow [C — 별도 polish 가능, 0.9.0 사이클 가치로는 약함]
-
-### 0.9.0 brainstorm 후보 (사이클 가치 결정 → spec → plan)
-
-- abnormal exit state 카운터 + S14 시나리오 (0.3.0 카운터 + 0.5.0 e2e 트랙 동시 확장, A/C).
-- judge 캐싱 (0.7.0 serve로 누적된 실측 데이터 확인 후 ROI 재평가, B2).
-- D 가치(배포/패키징): pip install codingbot, GitHub Releases 자동화.
+- (h) smoke install CI workflow [C — 별도 polish 가능]
+- (i) 0.9.0 polish: status 출력에 `judge_enabled` 표시 / serve dashboard에 모드 표시 (judge_call_total=0이 "장애 아님" 명시) — spec §7 리스크에서 0.9.0 비범위로 미룬 항목.
 
 ---
 
 ## (c) 새 세션이 알아야 할 중요 컨텍스트
+
+### 0.9.0에서 변경된 것
+
+- `codingbot/config.py`: `Config` dataclass에 `judge_enabled: bool = True` 필드. `load()` whitelist 튜플에 `"judge_enabled"` 추가.
+- `codingbot/llm_judge.py`: `_call(system, user)`이 fault-inject 검사 직후 `cfg = config.load()`로 로드 후 `if not cfg.judge_enabled: raise JudgeError("judge disabled by config (judge_enabled=false)")`. `_client()` 호출 없음 → API 비용 0.
+- 부수 영향: `_call`이 이제 항상 `config.load()`를 거치므로 `tests/unit/test_llm_judge.py::test_call_fault_inject_unknown_value_is_noop`에 `tmp_codingbot_home` fixture 추가 필요 (이전 테스트의 cache leak 격리). 이미 적용됨.
+- `config.example.yaml`: `judge_enabled: true` (기본) + 주석 추가.
+- 외부 인터페이스: `Config.judge_enabled`만 추가. 미지정 시 default True로 0.8.0 동작 보존.
+- 동작 시나리오 (`judge_enabled=false`):
+  - PreToolUse hook — heuristic safe면 자동 승인, risky면 차단, **unknown은 사용자에게 위임** (S6 회귀와 동일 — `JudgeError` → `_defer_to_user(judge="llm", reason="llm_failed")`).
+  - Stop hook — heuristic clear-continuing/done이면 즉시 처리, **unknown은 정상 종료 허용** (S8 회귀와 동일 — `JudgeError` → `_allow_stop("llm_failed")`).
+  - state 카운터 `judge_call_total`/`judge_timeout_total`/`judge_error_total` 모두 0 유지 (호출 자체가 안 일어남).
 
 ### 0.5.0에서 변경된 것
 
@@ -413,7 +463,9 @@ hooks/handoff_or_continue  → handoff, heuristics, llm_judge, logger, state, tr
 - plan (0.7.0): `docs/superpowers/plans/2026-05-01-codingbot-0.7.0.md`
 - spec (0.8.0): `docs/superpowers/specs/2026-05-02-codingbot-0.8.0-design.md`
 - plan (0.8.0): `docs/superpowers/plans/2026-05-02-codingbot-0.8.0.md`
-- release notes: `docs/release-notes-0.1.1.md`, `docs/release-notes-0.1.2.md`, `docs/release-notes-0.2.0.md`, `docs/release-notes-0.3.0.md`, `docs/release-notes-0.4.0.md`, `docs/release-notes-0.5.0.md`, `docs/release-notes-0.6.0.md`, `docs/release-notes-0.7.0.md`, `docs/release-notes-0.8.0.md`
+- spec (0.9.0): `docs/superpowers/specs/2026-05-02-codingbot-0.9.0-design.md`
+- plan (0.9.0): `docs/superpowers/plans/2026-05-02-codingbot-0.9.0.md`
+- release notes: `docs/release-notes-0.1.1.md`, `docs/release-notes-0.1.2.md`, `docs/release-notes-0.2.0.md`, `docs/release-notes-0.3.0.md`, `docs/release-notes-0.4.0.md`, `docs/release-notes-0.5.0.md`, `docs/release-notes-0.6.0.md`, `docs/release-notes-0.7.0.md`, `docs/release-notes-0.8.0.md`, `docs/release-notes-0.9.0.md`
 - push procedure: `docs/push-procedure.md`
 
 ---
@@ -422,16 +474,18 @@ hooks/handoff_or_continue  → handoff, heuristics, llm_judge, logger, state, tr
 
 다음 세션 시작 시:
 
-> "CodingBot **0.8.x polish (b)(c)(d)(e) 모두 완료 + push 완료**. 외부 사용자가 README만 보고 install 가능. v0.8.0 origin 등록.
-> 236 pass + 1 skipped, BLOCKED 0건, e2e_auto 25, LOC max 338(`tests/unit/test_heuristics.py`) 유지.
-> 0.9.0 D(배포 패키징) 보류 — `pip install git+...@v0.8.0` 이미 동작. wheel/GHA는 실 사용자 friction 보고 시 재개.
-> origin/master = local master = `242e6cf`.
+> "CodingBot **0.9.0 ship 완료 (P 사이클 — judge OFF 모드)**. local master에 release commit + `v0.9.0` annotated tag. **push는 사용자 게이트** (Task 7).
+> 240 pass + 1 skipped, BLOCKED 0건, e2e_auto 25 unchanged, LOC max 338(`tests/unit/test_heuristics.py`) 유지.
+> 사용자 환경 `~/.codingbot/config.yaml`에 `judge_enabled: false` 적용 — Anthropic API 호출 0건 모드 가동 중. heuristic unknown은 사용자 위임(PreToolUse) / 정상 종료 허용(Stop).
+> 운영 코드 변경: config.py +5 LOC + llm_judge.py +3 LOC = 8 LOC. public API breaking change 없음.
 >
 > 다음 후보 — 골라줘:
+> - 즉시: Task 7 push (`git push origin master --follow-tags`)
 > - (a) 0.7.0 실 데이터 e2e 수동 검증 — manual run 필요(Claude session 작업 아님).
-> - 0.9.0 사이클: (e) abnormal exit + S14 [A/C], (f) judge 캐싱 [B2 — (a) 데이터 후], (h) smoke install CI [C polish]"
+> - 0.10.0 사이클: (e) abnormal exit + S14 [A/C], (f) judge 캐싱 [B2 — judge_enabled=true 사용자에게만 의미], (h) smoke install CI [C polish], (i) status/serve에 judge 모드 표시 [polish]"
 
 선택지 요약:
+- push → 사용자 승인 후 Task 7 단일 명령.
 - (a) manual e2e → 사용자 손으로 `codingbot run` + browser dashboard.
-- 0.9.0 brainstorm → 사이클 가치 결정 + spec + plan + 다중 task.
+- 0.10.0 brainstorm → 사이클 가치 결정 + spec + plan + 다중 task.
 - (h) polish smoke CI → 단일 atomic commit으로 외부 install 회귀 자동화.

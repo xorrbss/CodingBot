@@ -12,7 +12,7 @@ Claude Code의 권한 자동 승인 + 작업 단위마다 컨텍스트 초기화
 
 ```bash
 # 옵션 A — 그냥 사용
-pip install git+https://github.com/xorrbss/CodingBot.git@v0.8.0
+pip install git+https://github.com/xorrbss/CodingBot.git@v0.9.0
 
 # 옵션 B — 코드 수정하면서 사용 (clone 후)
 pip install -e .
