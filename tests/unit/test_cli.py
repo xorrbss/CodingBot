@@ -160,6 +160,51 @@ def test_status_watch_default_interval_and_tail(tmp_codingbot_home, capsys, mock
     assert "refresh 1s" in out
 
 
+def test_read_lock_pid_returns_int(tmp_codingbot_home):
+    paths.lock_file().write_text("12345", encoding="utf-8")
+    assert cli._read_lock_pid() == 12345
+
+
+def test_read_lock_pid_none_when_absent(tmp_codingbot_home):
+    assert not paths.lock_file().exists()
+    assert cli._read_lock_pid() is None
+
+
+def test_read_lock_pid_none_when_garbage(tmp_codingbot_home):
+    paths.lock_file().write_text("not-a-pid", encoding="utf-8")
+    assert cli._read_lock_pid() is None
+
+
+def test_status_watch_header_shows_lock_pid_when_present(
+    tmp_codingbot_home, capsys, mocker
+):
+    """lock 파일에 PID가 있으면 watch 헤더에 `lock pid=<n>` 표시."""
+    paths.lock_file().write_text("9876", encoding="utf-8")
+    mocker.patch("codingbot.cli.os.system", return_value=0)
+    mocker.patch("codingbot.cli.time.sleep", side_effect=KeyboardInterrupt)
+
+    rc = cli.main(["status", "--watch"])
+    out = capsys.readouterr().out
+
+    assert rc == 0
+    assert "lock pid=9876" in out
+
+
+def test_status_watch_header_shows_lock_none_when_absent(
+    tmp_codingbot_home, capsys, mocker
+):
+    """lock 파일 부재 시 watch 헤더에 `lock none` 표시."""
+    assert not paths.lock_file().exists()
+    mocker.patch("codingbot.cli.os.system", return_value=0)
+    mocker.patch("codingbot.cli.time.sleep", side_effect=KeyboardInterrupt)
+
+    rc = cli.main(["status", "--watch"])
+    out = capsys.readouterr().out
+
+    assert rc == 0
+    assert "lock none" in out
+
+
 # 0.7.0 — `serve` (W 사이클)
 
 def test_serve_subparser_invokes_run_serve_with_defaults(tmp_codingbot_home, mocker):

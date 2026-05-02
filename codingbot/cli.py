@@ -76,6 +76,21 @@ def _read_log_tail(n: int) -> List[str]:
     return p.read_text(encoding="utf-8").splitlines()[-n:]
 
 
+def _read_lock_pid() -> Optional[int]:
+    """`paths.lock_file()`의 PID를 int로. 부재 또는 비숫자면 None.
+
+    watch 헤더 표시용. serve._read_lock_pid와 의도적으로 동일한 7-line 패턴
+    (3rd caller 등장 시 공통 모듈로 통합).
+    """
+    p = paths.lock_file()
+    if not p.exists():
+        return None
+    try:
+        return int(p.read_text(encoding="utf-8").strip())
+    except (ValueError, OSError):
+        return None
+
+
 def _watch_status(args: argparse.Namespace) -> int:
     """`status --watch` 루프. Ctrl-C(`KeyboardInterrupt`)로 깨끗하게 rc 0.
 
@@ -88,7 +103,9 @@ def _watch_status(args: argparse.Namespace) -> int:
         while True:
             os.system("cls" if os.name == "nt" else "clear")
             ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            print(f"--- CodingBot Status (refresh {interval}s) --- {ts} ---")
+            pid = _read_lock_pid()
+            lock_str = f"lock pid={pid}" if pid is not None else "lock none"
+            print(f"--- CodingBot Status (refresh {interval}s) --- {ts} --- {lock_str} ---")
             _print_status_body()
             print("\n=== Last log ===")
             for line in _read_log_tail(tail_n):
