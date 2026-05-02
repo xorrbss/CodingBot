@@ -5,6 +5,10 @@ max_cycles_per_run: 50
 judge_model: "claude-haiku-4-5-20251001"
 # LLM judge call timeout (seconds). 0 또는 음수면 timeout 없이 호출.
 judge_timeout_secs: 15
+# judge LLM 호출 on/off (0.9.0+).
+# false면 ANTHROPIC_API_KEY 불필요. heuristic 미매치 시 PreToolUse는 사용자에게 위임,
+# Stop은 정상 종료 허용 (기존 JudgeError fallback 경로 활용).
+judge_enabled: true
 api_key_env: "ANTHROPIC_API_KEY"
 safe_tools:
   - Read
