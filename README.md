@@ -68,6 +68,8 @@ codingbot config
   체인(`&&`/`||`/`;`/`|`) 내부 segment를 각각 분류해 secret/install/priv 중
   하나라도 걸리면 전체 호출 거부 (0.2.0~)
 - LLM 실패 시 안전 폴백 (= 사용자에게 정상적으로 물어봄)
+- `judge_enabled: false` 모드 (0.9.0+): API key 없이 heuristic만으로 동작.
+  모호한 도구 호출은 매번 사용자에게 묻고, Stop hook은 항상 종료 허용.
 
 ## 설정
 
