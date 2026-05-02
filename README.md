@@ -46,6 +46,9 @@ codingbot config
 - 사이클 한도: 기본 50회
 - `codingbot stop`: 다른 터미널에서 즉시 정지 신호
 - 위험 패턴 (rm -rf, force push 등)은 자동 승인 안 함
+- Bash chain 우회 차단: `echo ok && cat .env`처럼 안전 명령으로 시작해도
+  체인(`&&`/`||`/`;`/`|`) 내부 segment를 각각 분류해 secret/install/priv 중
+  하나라도 걸리면 전체 호출 거부 (0.2.0~)
 - LLM 실패 시 안전 폴백 (= 사용자에게 정상적으로 물어봄)
 
 ## 설정
