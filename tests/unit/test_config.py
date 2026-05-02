@@ -69,3 +69,16 @@ def test_risky_categories_partial_override(tmp_codingbot_home):
     cfg = config.load()
     assert cfg.risky_categories.get("secret") is False
     assert cfg.risky_categories.get("install", True) is True
+
+
+def test_judge_enabled_default_true(tmp_codingbot_home):
+    """0.9.0 P 사이클 — judge_enabled 미지정 시 default True (0.8.0 동작 보존)."""
+    cfg = config.load()
+    assert cfg.judge_enabled is True
+
+
+def test_judge_enabled_yaml_override(tmp_codingbot_home):
+    paths.config_file().write_text("judge_enabled: false\n", encoding="utf-8")
+    config.load.cache_clear()
+    cfg = config.load()
+    assert cfg.judge_enabled is False

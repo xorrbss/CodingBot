@@ -29,6 +29,7 @@ class Config:
     max_cycles_per_run: int = 50
     judge_model: str = "claude-haiku-4-5-20251001"
     judge_timeout_secs: int = 15
+    judge_enabled: bool = True
     api_key_env: str = "ANTHROPIC_API_KEY"
     safe_tools: List[str] = field(default_factory=lambda: list(DEFAULT_SAFE_TOOLS))
     risky_patterns: List[str] = field(default_factory=lambda: list(DEFAULT_RISKY_PATTERNS))
@@ -63,6 +64,7 @@ def load() -> Config:
         "max_cycles_per_run",
         "judge_model",
         "judge_timeout_secs",
+        "judge_enabled",
         "api_key_env",
         "safe_tools",
         "risky_patterns",
