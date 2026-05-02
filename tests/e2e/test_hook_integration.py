@@ -104,7 +104,9 @@ def test_s8_judge_error_stop_allows_stop(
     assert counters.get("judge_call_total", 0) == 1
 
 
-def test_s9_secret_segment_blocked(hook_env, transcript_jsonl_factory):
+def test_s9_secret_segment_blocked(
+    hook_env, transcript_jsonl_factory, tmp_codingbot_home
+):
     """S9: Bash `cat .env` → heuristic risky(secret) → _defer_to_user, judge 미호출."""
     transcript = transcript_jsonl_factory([
         {"role": "assistant", "text": "임의 텍스트 — heuristic risky 분기는 transcript 미사용"},
@@ -126,7 +128,9 @@ def test_s9_secret_segment_blocked(hook_env, transcript_jsonl_factory):
     assert counters.get("judge_call_total", 0) == 0  # heuristic risky → judge 미호출
 
 
-def test_s10_install_segment_blocked(hook_env, transcript_jsonl_factory):
+def test_s10_install_segment_blocked(
+    hook_env, transcript_jsonl_factory, tmp_codingbot_home
+):
     """S10: Bash `pip install requests` → heuristic risky(install) → _defer_to_user."""
     transcript = transcript_jsonl_factory([
         {"role": "assistant", "text": "임의 텍스트"},
@@ -148,7 +152,9 @@ def test_s10_install_segment_blocked(hook_env, transcript_jsonl_factory):
     assert counters.get("judge_call_total", 0) == 0
 
 
-def test_s11_priv_segment_blocked(hook_env, transcript_jsonl_factory):
+def test_s11_priv_segment_blocked(
+    hook_env, transcript_jsonl_factory, tmp_codingbot_home
+):
     """S11: Bash `sudo rm /tmp/x` → heuristic risky(priv) → _defer_to_user."""
     transcript = transcript_jsonl_factory([
         {"role": "assistant", "text": "임의 텍스트"},
@@ -170,7 +176,9 @@ def test_s11_priv_segment_blocked(hook_env, transcript_jsonl_factory):
     assert counters.get("judge_call_total", 0) == 0
 
 
-def test_s12_chain_bypass_still_blocked(hook_env, transcript_jsonl_factory):
+def test_s12_chain_bypass_still_blocked(
+    hook_env, transcript_jsonl_factory, tmp_codingbot_home
+):
     """S12: Bash `echo ok && cat .env` → 첫 segment 안전해도 chain 내부 secret 차단.
 
     0.2.0 보안 주장의 핵심 — _split_bash_segments가 chain operator로 분리한 뒤
@@ -197,7 +205,9 @@ def test_s12_chain_bypass_still_blocked(hook_env, transcript_jsonl_factory):
     assert counters.get("judge_call_total", 0) == 0
 
 
-def test_s13_safe_bash_still_approves(hook_env, transcript_jsonl_factory):
+def test_s13_safe_bash_still_approves(
+    hook_env, transcript_jsonl_factory, tmp_codingbot_home
+):
     """S13 (대조): Bash `ls` → heuristic safe → _approve, defer 카운터 미증가.
 
     risky 분기 회귀와 함께 false positive(안전 명령이 defer로 새는 것) 회귀도
