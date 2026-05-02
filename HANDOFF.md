@@ -17,7 +17,7 @@
 - release notes: `docs/release-notes-0.8.0.md`
 - local master = `<this commit>`, `v0.8.0` annotated tag (push 미실행 — 사용자 명시 승인 후)
 - 변경 파일:
-  - `tests/e2e/test_hook_integration.py`: S9~S13 5 함수 append (105 → 226 LOC).
+  - `tests/e2e/test_hook_integration.py`: S9~S13 5 함수 append (104 → 226 LOC).
   - `pyproject.toml`: 0.7.0 → 0.8.0.
   - `docs/release-notes-0.8.0.md` (신규).
   - `HANDOFF.md` (17th update).
@@ -266,14 +266,16 @@ c2957db  release: 0.1.1                                              ← v0.1.1 
 
 ### 테스트 현황
 
-- **202 pass + 1 skipped** (0.5.0 시점 198 → 0.6.0 S 사이클에서 +4: cli `_read_log_tail` 2 + status --watch 루프 1회 실행 2)
+- **231 pass + 1 skipped** (0.7.0 시점 226 → 0.8.0 A 사이클에서 +5: e2e_auto S9~S13 risky_tool defer/approve 회귀)
+- 이전: 226 pass + 1 skipped (0.6.0 시점 202 → 0.7.0 W 사이클에서 +24: serve unit + cli + e2e_auto lifecycle)
+- 이전: 202 pass + 1 skipped (0.5.0 시점 198 → 0.6.0 S 사이클에서 +4: cli `_read_log_tail` 2 + status --watch 루프 1회 실행 2)
 - 이전: 198 pass + 1 skipped (0.4.0 시점 182 → 0.5.0에서 +16: llm_judge fault-inject 3 + e2e fixtures 3 + hook_harness 5 + S4 1 + S5~S8 4)
 - 이전: 182 pass + 1 skipped (0.3.0 시점 176 → 0.4.0에서 +6: fake_claude 단위 3 + S1/S2/S3 통합 3)
 - 이전: 176 pass + 1 skipped (0.2.0 시점 148 → 0.3.0에서 +28: state 11 + llm_judge 3 + auto_approve 6 + handoff_or_continue 6 + cli 2)
 - 이전: 148 pass + 1 skipped (0.1.2 시점 99 → 0.2.0에서 +49: split 10 + secret 7 + install 7 + priv 6 + chain bypass 11 + config 4 + llm_judge 3 + runner 1)
-- e2e: 두 트랙 — `e2e_auto` (자동, 무료, 19건, ~31초) + `e2e` (manual, $, smoke)
+- e2e: 두 트랙 — `e2e_auto` (자동, 무료, 25건, ~37초) + `e2e` (manual, $, smoke)
 - `BLOCKED` grep 시 코드 **0건**
-- 모든 코드 파일 ≤ 500 LOC (max `tests/unit/test_heuristics.py` 338, 다음 `codingbot/heuristics.py` 282)
+- 모든 코드 파일 ≤ 500 LOC (max `tests/unit/test_heuristics.py` 338, 다음 `codingbot/heuristics.py` 282, `codingbot/serve.py` 244)
 
 ---
 
