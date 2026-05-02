@@ -52,6 +52,10 @@ def _call(system: str, user: str) -> str:
     if fault == "judge_error":
         raise JudgeError("fault inject: judge_error")
     cfg = config.load()
+    # 0.9.0 P 사이클 — judge OFF 모드. 기존 hook fallback 경로(S6/S7/S8 회귀로
+    # 검증됨)가 JudgeError를 defer/allow_stop으로 안전하게 처리.
+    if not cfg.judge_enabled:
+        raise JudgeError("judge disabled by config (judge_enabled=false)")
     try:
         resp = _client().messages.create(
             model=cfg.judge_model,

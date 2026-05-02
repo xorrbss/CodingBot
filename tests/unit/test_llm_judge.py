@@ -131,8 +131,48 @@ def test_call_fault_inject_error(monkeypatch):
     assert "fault inject" in str(exc.value)
 
 
-def test_call_fault_inject_unknown_value_is_noop(monkeypatch):
-    """알 수 없는 값은 분기 미진입 (정규 경로로 흘러 _client 호출까지 도달)."""
+def test_evaluate_tool_safety_raises_when_judge_disabled(tmp_codingbot_home, monkeypatch):
+    """0.9.0 P 사이클 — judge_enabled=false면 _client 호출 없이 JudgeError raise."""
+    from codingbot import config, paths
+    paths.config_file().write_text("judge_enabled: false\n", encoding="utf-8")
+    config.load.cache_clear()
+    called = {"client": False}
+
+    def fake_client():
+        called["client"] = True
+        raise AssertionError("_client must not be called when judge_enabled=false")
+
+    monkeypatch.setattr(llm_judge, "_client", fake_client)
+    with pytest.raises(llm_judge.JudgeError) as exc:
+        llm_judge.evaluate_tool_safety("Bash", {"command": "x"}, "")
+    assert "disabled" in str(exc.value)
+    assert called["client"] is False
+
+
+def test_classify_raises_when_judge_disabled(tmp_codingbot_home, monkeypatch):
+    """0.9.0 P 사이클 — judge_enabled=false면 classify도 _client 호출 없이 JudgeError raise."""
+    from codingbot import config, paths
+    paths.config_file().write_text("judge_enabled: false\n", encoding="utf-8")
+    config.load.cache_clear()
+    called = {"client": False}
+
+    def fake_client():
+        called["client"] = True
+        raise AssertionError("_client must not be called when judge_enabled=false")
+
+    monkeypatch.setattr(llm_judge, "_client", fake_client)
+    with pytest.raises(llm_judge.JudgeError) as exc:
+        llm_judge.classify([{"role": "assistant", "content": "x"}])
+    assert "disabled" in str(exc.value)
+    assert called["client"] is False
+
+
+def test_call_fault_inject_unknown_value_is_noop(tmp_codingbot_home, monkeypatch):
+    """알 수 없는 값은 분기 미진입 (정규 경로로 흘러 _client 호출까지 도달).
+
+    tmp_codingbot_home: 0.9.0 P 사이클에서 _call이 config.load()를 사용하므로
+    이전 테스트가 cache한 judge_enabled=false가 leak되지 않게 격리.
+    """
     from codingbot import llm_judge
     monkeypatch.setenv("CODINGBOT_FAULT_INJECT", "bogus_value")
     called = {}
