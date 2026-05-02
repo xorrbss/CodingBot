@@ -2,13 +2,31 @@
 
 Claude Code의 권한 자동 승인 + 작업 단위마다 컨텍스트 초기화하며 자동 진행하는 CLI 도구.
 
+## 사전 요구사항
+
+- Python 3.11+
+- [Claude Code](https://docs.claude.com/en/docs/claude-code) CLI 설치 (`claude` 명령이 PATH에 있어야 함)
+- Anthropic API key (judge 호출용)
+
 ## 설치
 
 ```bash
+# 옵션 A — 그냥 사용
+pip install git+https://github.com/xorrbss/CodingBot.git@v0.8.0
+
+# 옵션 B — 코드 수정하면서 사용 (clone 후)
 pip install -e .
+
+# 공통 — Claude Code에 hook 등록 + API key
 codingbot install-hooks
 export ANTHROPIC_API_KEY=...
+
+# 동작 확인
+codingbot --help
+codingbot status
 ```
+
+설정은 `config.example.yaml`을 `~/.codingbot/config.yaml`로 복사해 시작 (없으면 기본값으로 동작).
 
 ## 사용
 
