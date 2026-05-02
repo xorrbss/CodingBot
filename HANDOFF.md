@@ -1,11 +1,24 @@
 # CodingBot 개발 핸드오프
 
-**작성일**: 2026-05-02 (18th update — 0.8.0 push 완료 + 0.8.x polish (b)(c)(d))
+**작성일**: 2026-05-02 (19th update — 0.8.x polish (e) README install — "사용 가능" 갭 닫음)
 **대상**: 다음 작업 세션
 
 ---
 
 ## (a) 지금까지 한 일
+
+### 0.8.x polish (e) 완료 + 0.9.0 D 사이클 보류 (2026-05-02)
+
+- polish (e) `docs(readme): add prerequisites + git URL install` (`242e6cf`, push 완료):
+  - 외부 사용자가 README만 보고 install 가능 (`pip install git+...@v0.8.0` 옵션 A)
+  - 사전 요구사항(Python 3.11+, Claude Code CLI, ANTHROPIC_API_KEY) 명시
+  - 동작 확인 단계 + 설정 진입점 추가
+- **0.9.0 D 사이클(배포 패키징) 보류 결정**:
+  - brainstorm 진행 중 사용자 challenge — `pip install git+...@v0.8.0`은 이미 동작. GHA/wheel asset/release page 자동화는 가치 명제 약함(8 사이클 동안 release page도 안 만듦 = 실 friction 아님).
+  - 진짜 갭 = README install 안내(이미 polish (e)로 닫음) + 향후 smoke CI(보류).
+  - GHA tag-trigger pipeline + wheel + release notes 자동주입은 **실제 외부 사용자가 wheel/install friction 보고하면** 그때 0.10.0 D로 추가.
+- 운영 코드 변경 0, 테스트 회귀 변동 0 (236 pass + 1 skipped 유지).
+- origin/master = local master = `242e6cf`.
 
 ### 0.8.0 push + polish (b)(c)(d) 완료 (2026-05-02)
 
@@ -298,14 +311,22 @@ c2957db  release: 0.1.1                                              ← v0.1.1 
 
 ## (b) 다음에 할 일
 
-0.8.0 push 완료. polish (b)/(c)/(d) 완료. **polish 3 commits push 미실행** (사용자 결정 후). release 게이트 모두 닫힘. 다음 후보:
+0.8.0 push + polish (b)/(c)/(d)/(e) 모두 완료. **외부 사용자 install 가능 상태**. 다음 후보:
 
 ### 0.7.x/0.8.x polish 잔여
 
-- (a) 0.7.0 e2e 수동 검증 (실제 Claude Code run + 브라우저 dashboard 직접 확인) — 0.7.x polish (a) 별도로 sandbox 합성 데이터 검증은 완료, 실 데이터 검증은 미실시. **manual run 필요**.
-- ~~(b) watch 헤더에 lock pid 표시~~ → 18th update에서 완료 (`b77d842`).
-- ~~(c) S9~S13 비대칭 정리~~ → 18th update에서 완료 (`bda20db`).
-- ~~(d) README "안전성" 섹션 chain bypass 사례~~ → 18th update에서 완료 (`b68fb35`).
+- (a) 0.7.0 e2e 수동 검증 (실제 Claude Code run + 브라우저 dashboard 직접 확인) — **manual run 필요** (Claude session 작업 아님). 사용자가 직접.
+- ~~(b) watch 헤더에 lock pid~~ → `b77d842`.
+- ~~(c) S9~S13 비대칭 정리~~ → `bda20db`.
+- ~~(d) README "안전성" 섹션 chain bypass~~ → `b68fb35`.
+- ~~(e) README install/prerequisites~~ → `242e6cf`.
+
+### 0.9.0 후보 (사이클 가치 결정 → spec → plan)
+
+- (e) abnormal exit state 카운터 + S14 시나리오 [A/C — 0.3.0 카운터 + 0.5.0 e2e 트랙 동시 확장]
+- (f) judge 캐싱 [B2 — (a) 실 데이터 누적 후 ROI 재평가]
+- ~~(g) 배포 패키징 [D]~~ → 19th update에서 보류 결정. polish (e)로 외부 install 갭 닫음. wheel/GHA pipeline은 실 사용자 friction 보고 시 0.10.0 D로 재개.
+- (h) smoke install CI workflow [C — 별도 polish 가능, 0.9.0 사이클 가치로는 약함]
 
 ### 0.9.0 brainstorm 후보 (사이클 가치 결정 → spec → plan)
 
@@ -401,16 +422,16 @@ hooks/handoff_or_continue  → handoff, heuristics, llm_judge, logger, state, tr
 
 다음 세션 시작 시:
 
-> "CodingBot **0.8.0 push 완료 + 0.8.x polish (b)(c)(d) 완료**. v0.8.0 origin 등록. polish 3 commits(`b77d842 b68fb35 사이`) push 미실행.
+> "CodingBot **0.8.x polish (b)(c)(d)(e) 모두 완료 + push 완료**. 외부 사용자가 README만 보고 install 가능. v0.8.0 origin 등록.
 > 236 pass + 1 skipped, BLOCKED 0건, e2e_auto 25, LOC max 338(`tests/unit/test_heuristics.py`) 유지.
-> HANDOFF 18th update + 0.8.0 release notes 정합.
+> 0.9.0 D(배포 패키징) 보류 — `pip install git+...@v0.8.0` 이미 동작. wheel/GHA는 실 사용자 friction 보고 시 재개.
+> origin/master = local master = `242e6cf`.
 >
 > 다음 후보 — 골라줘:
-> - polish push: `git push origin master` (tag 변동 없음).
-> - polish 잔여 (a) 0.7.0 실 데이터 e2e 수동 검증 — manual run 필요.
-> - 0.9.0 brainstorm: (e) abnormal exit + S14 [A/C], (f) judge 캐싱 [B2], (g) 배포 패키징 [D]"
+> - (a) 0.7.0 실 데이터 e2e 수동 검증 — manual run 필요(Claude session 작업 아님).
+> - 0.9.0 사이클: (e) abnormal exit + S14 [A/C], (f) judge 캐싱 [B2 — (a) 데이터 후], (h) smoke install CI [C polish]"
 
 선택지 요약:
-- polish push → 1 명령, 즉시.
 - (a) manual e2e → 사용자 손으로 `codingbot run` + browser dashboard.
-- 0.9.0 brainstorm → 사이클 가치 결정 + spec + plan + 다중 task. 한 세션 이상 가능.
+- 0.9.0 brainstorm → 사이클 가치 결정 + spec + plan + 다중 task.
+- (h) polish smoke CI → 단일 atomic commit으로 외부 install 회귀 자동화.
